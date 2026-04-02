@@ -7,8 +7,7 @@ import {
   Menu, Search, Home, Maximize, LogOut,
   Edit, Trash2, X, DownloadCloud, Loader2
 } from "lucide-react";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
+
 
 interface Asset {
   id: string;
@@ -90,23 +89,39 @@ export default function Dashboard() {
     }
   };
 
-  // Fitur Export Excel (langsung ambil semua data yang ada di hasil pencarian)
+  // Fitur Export Excel — memanggil API server-side (ExcelJS, styled, QR code)
   const handleExportExcel = async () => {
     if (isExporting) return;
     setIsExporting(true);
     try {
-      const { data } = await axios.get(`/api/assets?search=${search}&limit=100000`); // Ambil max data
-      const worksheet = XLSX.utils.json_to_sheet(data.data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Data_Aset");
-      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-      const dataBlob = new Blob([excelBuffer], { type: "application/octet-stream" });
-      saveAs(dataBlob, `Data_Aset_${format(new Date(), "yyyyMMdd")}.xlsx`);
+      const response = await axios.get(`/api/export?search=${encodeURIComponent(search)}`, {
+        responseType: "blob",
+      });
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Data_Aset_${format(new Date(), "yyyyMMdd")}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Gagal export", error);
     } finally {
       setIsExporting(false);
     }
+  };
+
+  // Fungsi pembantu untuk membuat URL file nembak ke Backend API
+  const getFileUrl = (url: string | null) => {
+    if (!url) return undefined;
+    if (url.startsWith("http")) return url;
+    // Ganti base URL ini sesuai dengan URL dan port backend API Anda (tempat file /uploads/... berada)
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://192.168.110.119:3002";
+    return `${backendUrl}${url}`;
   };
 
   const getKondisiBadge = (kondisi: string) => {
@@ -175,14 +190,16 @@ export default function Dashboard() {
                 <th className="p-3 border-b-2 border-green-800">LONGITUDE</th>
                 <th className="p-3 border-b-2 border-green-800">TGL UPDATE</th>
                 <th className="p-3 border-b-2 border-green-800">KETERANGAN</th>
+                <th className="p-3 border-b-2 border-green-800 text-center">FOTO</th>
+                <th className="p-3 border-b-2 border-green-800 text-center">QR CODE</th>
                 <th className="p-3 border-b-2 border-green-800 text-center rounded-tr-md">AKSI</th>
               </tr>
             </thead>
             <tbody className="text-gray-700">
               {loading ? (
-                <tr><td colSpan={14} className="p-4 text-center">Loading data...</td></tr>
+                <tr><td colSpan={16} className="p-4 text-center">Loading data...</td></tr>
               ) : assets.length === 0 ? (
-                <tr><td colSpan={14} className="p-4 text-center">Tidak ada data aset</td></tr>
+                <tr><td colSpan={16} className="p-4 text-center">Tidak ada data aset</td></tr>
               ) : (
                 assets.map((asset, idx) => (
                   <tr key={asset.id} className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-green-50 border-b border-gray-100`}>
@@ -199,13 +216,51 @@ export default function Dashboard() {
                     <td className="p-3">{asset.longitude || '-'}</td>
                     <td className="p-3">{asset.tanggalUpdate ? format(new Date(asset.tanggalUpdate), "dd/MM/yy, HH.mm") : '-'}</td>
                     <td className="p-3 truncate max-w-[150px]" title={asset.keterangan || ""}>{asset.keterangan || '-'}</td>
-                    <td className="p-3 flex items-center justify-center gap-2">
-                      <button className="p-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded-full transition" title="Edit">
-                        <Edit size={14} />
-                      </button>
-                      <button className="p-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-full transition" title="Hapus">
-                        <Trash2 size={14} />
-                      </button>
+                    {/* Kolom Foto */}
+                    <td className="p-2 text-center">
+                      {asset.fotoUrl ? (
+                        <a href={getFileUrl(asset.fotoUrl)} target="_blank" rel="noopener noreferrer" title="Lihat Foto" className="text-blue-500 underline text-xs">
+                          <img
+                            src={getFileUrl(asset.fotoUrl)}
+                            alt="Foto Aset"
+                            className="w-12 h-12 object-cover rounded border border-gray-200 mx-auto hover:scale-110 transition-transform"
+                            onError={(e) => { 
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              (e.target as HTMLImageElement).parentElement!.innerText = 'Link Foto'; 
+                            }}
+                          />
+                        </a>
+                      ) : (
+                        <span className="text-gray-300 text-xs">—</span>
+                      )}
+                    </td>
+                    {/* Kolom QR Code */}
+                    <td className="p-2 text-center">
+                      {asset.qrCodeUrl ? (
+                        <a href={getFileUrl(asset.qrCodeUrl)} target="_blank" rel="noopener noreferrer" title="Lihat QR Code" className="text-blue-500 underline text-xs">
+                          <img
+                            src={getFileUrl(asset.qrCodeUrl)}
+                            alt="QR Code"
+                            className="w-12 h-12 object-contain mx-auto hover:scale-110 transition-transform"
+                            onError={(e) => { 
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              (e.target as HTMLImageElement).parentElement!.innerText = 'Link QR';
+                            }}
+                          />
+                        </a>
+                      ) : (
+                        <span className="text-gray-300 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center justify-center gap-2">
+                        <button className="p-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded-full transition" title="Edit">
+                          <Edit size={14} />
+                        </button>
+                        <button className="p-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-full transition" title="Hapus">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
