@@ -40,6 +40,7 @@ export default function Dashboard() {
   const [totalRecord, setTotalRecord] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   const fetchAssets = async (currentPage: number, currentSearch: string, isNewSearch: boolean) => {
     try {
@@ -219,38 +220,38 @@ export default function Dashboard() {
                     {/* Kolom Foto */}
                     <td className="p-2 text-center">
                       {asset.fotoUrl ? (
-                        <a href={getFileUrl(asset.fotoUrl)} target="_blank" rel="noopener noreferrer" title="Lihat Foto" className="text-blue-500 underline text-xs">
+                        <button
+                          onClick={() => setZoomedImage(getFileUrl(asset.fotoUrl) as string)}
+                          title="Lihat Foto"
+                          className="flex justify-center w-full"
+                        >
                           <img
                             src={getFileUrl(asset.fotoUrl)}
                             alt="Foto Aset"
-                            className="w-12 h-12 object-cover rounded border border-gray-200 mx-auto hover:scale-110 transition-transform"
+                            className="w-12 h-12 object-cover rounded border border-gray-200 mx-auto hover:scale-110 transition-transform cursor-pointer"
                             onError={(e) => { 
                               (e.target as HTMLImageElement).style.display = 'none';
-                              (e.target as HTMLImageElement).parentElement!.innerText = 'Link Foto'; 
+                              (e.target as HTMLImageElement).parentElement!.innerText = 'Link Foto Error'; 
                             }}
                           />
-                        </a>
+                        </button>
                       ) : (
                         <span className="text-gray-300 text-xs">—</span>
                       )}
                     </td>
-                    {/* Kolom QR Code */}
+                    {/* Kolom QR Code Generated dari ID */}
                     <td className="p-2 text-center">
-                      {asset.qrCodeUrl ? (
-                        <a href={getFileUrl(asset.qrCodeUrl)} target="_blank" rel="noopener noreferrer" title="Lihat QR Code" className="text-blue-500 underline text-xs">
-                          <img
-                            src={getFileUrl(asset.qrCodeUrl)}
-                            alt="QR Code"
-                            className="w-12 h-12 object-contain mx-auto hover:scale-110 transition-transform"
-                            onError={(e) => { 
-                              (e.target as HTMLImageElement).style.display = 'none';
-                              (e.target as HTMLImageElement).parentElement!.innerText = 'Link QR';
-                            }}
-                          />
-                        </a>
-                      ) : (
-                        <span className="text-gray-300 text-xs">—</span>
-                      )}
+                      <button 
+                        onClick={() => setZoomedImage(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${asset.id}`)}
+                        title="Perbesar QR Code"
+                        className="flex justify-center w-full"
+                      >
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${asset.id}`}
+                          alt={`QR Code ${asset.id}`}
+                          className="w-12 h-12 object-contain mx-auto hover:scale-110 transition-transform shadow-sm bg-white cursor-pointer"
+                        />
+                      </button>
                     </td>
                     <td className="p-3">
                       <div className="flex items-center justify-center gap-2">
@@ -310,6 +311,31 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex-1 cursor-pointer" onClick={() => setIsSidebarOpen(false)}></div>
+        </div>
+      )}
+
+      {/* Modal Zoom Panel (Lightbox untuk Foto/QR Code) */}
+      {zoomedImage && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity"
+          onClick={() => setZoomedImage(null)}
+        >
+          <div className="relative max-w-4xl w-full flex justify-center" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 bg-white/20 hover:bg-white/30 p-2 rounded-full transition-colors z-10"
+              onClick={() => setZoomedImage(null)}
+              title="Tutup (Esc)"
+            >
+              <X size={24} />
+            </button>
+            <div className="bg-white p-2 rounded-lg shadow-2xl relative overflow-hidden">
+              <img 
+                src={zoomedImage} 
+                alt="Zoomed" 
+                className="max-h-[80vh] max-w-[90vw] object-contain rounded bg-white"
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
