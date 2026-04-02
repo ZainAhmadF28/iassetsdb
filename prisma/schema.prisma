@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(uuid())
+  name       String
+  email      String   @unique
+  password   String
+  role       String   @default("admin")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  logs       AssetLog[]
+
+  @@map("users")
+}
+
+model Asset {
+  id             String    @id @default(uuid())
+
+  // Kolom 1-8 dari Excel (data SAP)
+  kodeKelas      String?   @map("kode_kelas")
+  kelasAsetSmbr  String?   @map("kelas_aset_smbr")
+  kelasAsetSig   String?   @map("kelas_aset_sig")
+  nomorAset      String    @unique @map("nomor_aset")
+  namaAset       String    @map("nama_aset")
+  site           String?
+  qty            Int       @default(1)
+  satuan         String?   @default("PC")
+
+  // Kolom 9: KOORDINAT
+  latitude       Float?
+  longitude      Float?
+
+  // Kolom 10: TANGGAL UPDATE
+  tanggalUpdate  DateTime? @map("tanggal_update")
+
+  // Kolom 11: DOKUMENTASI
+  fotoUrl        String?   @map("foto_url")
+
+  // Kolom 12: KONDISI
+  kondisi        Kondisi   @default(BELUM_DICEK)
+
+  // Kolom 13: KETERANGAN
+  keterangan     String?
+
+  // Kolom 14: QR CODE ASET
+  qrCodeUrl      String?   @map("qr_code_url")
+
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  logs           AssetLog[]
+
+  @@map("assets")
+}
+
+enum Kondisi {
+  BAIK
+  RUSAK
+  RUSAK_BERAT
+  HILANG
+  BELUM_DICEK
+}
+
+model AssetLog {
+  id        String   @id @default(uuid())
+  assetId   String   @map("asset_id")
+  userId    String?  @map("user_id")
+  action    String   @db.VarChar(255)
+  oldValue  String?  @map("old_value")
+  newValue  String?  @map("new_value")
+  catatan   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("asset_logs")
+}
