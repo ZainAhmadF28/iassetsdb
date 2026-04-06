@@ -5,7 +5,7 @@ import axios from "axios";
 import { format } from "date-fns";
 import {
   Menu, Search, Home, Maximize, LogOut,
-  Edit, Trash2, X, DownloadCloud, Loader2
+  Edit, Trash2, X, DownloadCloud, Loader2, AlertTriangle
 } from "lucide-react";
 
 
@@ -41,6 +41,8 @@ export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{isOpen: boolean; id: string; nama: string}>({ isOpen: false, id: "", nama: "" });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchAssets = async (currentPage: number, currentSearch: string, isNewSearch: boolean) => {
     try {
@@ -121,7 +123,7 @@ export default function Dashboard() {
     if (!url) return undefined;
     if (url.startsWith("http")) return url;
     // Ganti base URL ini sesuai dengan URL dan port backend API Anda (tempat file /uploads/... berada)
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://192.168.110.119:3002";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://192.168.1.6:3000";
     return `${backendUrl}${url}`;
   };
 
@@ -135,103 +137,153 @@ export default function Dashboard() {
     }
   };
 
+  const handleDelete = (id: string, nama: string) => {
+    setDeleteConfirm({ isOpen: true, id, nama });
+  };
+
+  const executeDelete = async () => {
+    const { id } = deleteConfirm;
+    setIsDeleting(true);
+    try {
+      await axios.delete(`/api/assets/${id}`);
+      setAssets((prev) => prev.filter((asset) => asset.id !== id));
+      setTotalRecord((prev) => prev - 1);
+      setDeleteConfirm({ isOpen: false, id: "", nama: "" });
+    } catch (error) {
+      console.error("Gagal menghapus data", error);
+      alert("Gagal menghapus aset. Silakan coba lagi.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleEdit = (id: string) => {
+    // Karena halaman edit belum ada, kita bisa lempar notifikasi atau arahkan ke /edit/[id]
+    // Silakan sesuaikan dengan routing sesungguhnya (contoh: /assets/edit/1)
+    alert(`Fitur edit untuk ID: ${id} dalam tahap pengembangan. Nanti akan dialihkan ke halaman edit form.`);
+  };
+
   return (
-    <div className="h-screen overflow-hidden bg-gray-50 font-sans text-sm flex flex-col">
-      <header className="bg-[#1B5E40] text-white p-3 flex items-center justify-between shadow-md z-10 shrink-0">
-        <div className="flex items-center gap-3">
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-white/10 rounded-md hover:bg-white/20 transition">
+    <div className="h-screen overflow-hidden bg-slate-50 font-sans text-sm flex flex-col transition-colors duration-300">
+      {/* HEADER */}
+      <header className="mx-4 mt-4 bg-white/70 backdrop-blur-lg border border-gray-200/60 p-4 shrink-0 rounded-2xl shadow-sm flex items-center justify-between z-10 transition-all duration-300">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => setIsSidebarOpen(true)} 
+            className="p-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl transition-all duration-300 hover:shadow-md hover:scale-105 active:scale-95"
+          >
             <Menu size={20} />
           </button>
           <div>
-            <h1 className="font-semibold text-lg leading-tight">Admin Panel - Aset</h1>
-            <p className="text-xs text-green-200">PT. SEMEN BATURAJA TBK</p>
+            <h1 className="font-bold text-xl text-gray-800 tracking-tight flex items-center gap-2">
+              Admin Panel <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] uppercase rounded-full tracking-widest font-bold">Aset</span>
+            </h1>
+            <p className="text-xs text-gray-500 mt-0.5 font-medium">PT. SEMEN BATURAJA TBK</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="p-2 bg-white/10 rounded-md hover:bg-white/20 transition"><Home size={18} /></button>
-          <button className="p-2 bg-white/10 rounded-md hover:bg-white/20 transition"><Maximize size={18} /></button>
-          <button className="p-2 bg-white/10 rounded-md hover:bg-white/20 transition"><LogOut size={18} /></button>
+        <div className="flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2 mr-4 text-xs font-semibold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            {totalRecord} Data Ditemukan
+          </div>
         </div>
       </header>
 
-      <div className="bg-[#2C7A51] px-4 py-3 flex items-center justify-between shrink-0">
-        <div className="text-white flex items-center gap-2 font-medium">
-          <span className="bg-white/20 px-2 py-1 rounded">{totalRecord} record</span>
-        </div>
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+      {/* SEARCH BAR (MODERN) */}
+      <div className="px-4 py-4 shrink-0 z-10 w-full max-w-2xl mx-auto transition-all duration-300">
+        <div className="relative group">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Search className="text-gray-400 group-focus-within:text-green-500 transition-colors duration-300" size={18} />
+          </div>
           <input
             type="text"
             placeholder="Cari nama atau nomor aset..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-md bg-white/90 text-gray-800 placeholder-gray-500 focus:outline-none focus:bg-white border-none shadow-inner"
+            className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white border border-gray-200/80 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-green-500/10 focus:border-green-400 shadow-sm transition-all duration-300 hover:shadow-md"
           />
         </div>
       </div>
 
+      {/* MAIN CONTENT AREA */}
       <main
-        className="p-4 overflow-y-auto overflow-x-auto flex-1 relative"
+        className="px-4 pb-4 overflow-y-auto overflow-x-auto flex-1 relative custom-scrollbar"
         onScroll={handleScroll}
       >
-        <div className="bg-white rounded-md shadow min-w-max w-full">
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 min-w-max w-full overflow-hidden transition-all duration-300">
           <table className="w-full whitespace-nowrap text-left border-collapse min-w-full">
-            <thead className="sticky top-0 z-10 shadow-sm">
-              <tr className="bg-[#1B5E40] text-white text-xs uppercase tracking-wider">
-                <th className="p-3 border-b-2 border-green-800 rounded-tl-md">NOMOR ASET</th>
-                <th className="p-3 border-b-2 border-green-800">NAMA ASET</th>
-                <th className="p-3 border-b-2 border-green-800">KODE KELAS</th>
-                <th className="p-3 border-b-2 border-green-800">KELAS SMBR</th>
-                <th className="p-3 border-b-2 border-green-800">KATEGORI SIG</th>
-                <th className="p-3 border-b-2 border-green-800">KONDISI</th>
-                <th className="p-3 border-b-2 border-green-800">QTY</th>
-                <th className="p-3 border-b-2 border-green-800">SATUAN</th>
-                <th className="p-3 border-b-2 border-green-800">SITE</th>
-                <th className="p-3 border-b-2 border-green-800">LATITUDE</th>
-                <th className="p-3 border-b-2 border-green-800">LONGITUDE</th>
-                <th className="p-3 border-b-2 border-green-800">TGL UPDATE</th>
-                <th className="p-3 border-b-2 border-green-800">KETERANGAN</th>
-                <th className="p-3 border-b-2 border-green-800 text-center">FOTO</th>
-                <th className="p-3 border-b-2 border-green-800 text-center">QR CODE</th>
-                <th className="p-3 border-b-2 border-green-800 text-center rounded-tr-md">AKSI</th>
+            <thead className="sticky top-0 z-10 backdrop-blur-md bg-white/90">
+              <tr className="text-gray-500 text-[11px] font-bold uppercase tracking-wider border-b border-gray-100">
+                <th className="p-4 pl-6">Nomor Aset</th>
+                <th className="p-4">Nama Aset</th>
+                <th className="p-4">Kode Kelas</th>
+                <th className="p-4">Kelas SMBR</th>
+                <th className="p-4">Kategori SIG</th>
+                <th className="p-4">Kondisi</th>
+                <th className="p-4">Qty</th>
+                <th className="p-4">Satuan</th>
+                <th className="p-4">Site</th>
+                <th className="p-4">Latitude</th>
+                <th className="p-4">Longitude</th>
+                <th className="p-4">Tgl Update</th>
+                <th className="p-4">Keterangan</th>
+                <th className="p-4 text-center">Foto</th>
+                <th className="p-4 text-center">QR Code</th>
+                <th className="p-4 text-center pr-6">Aksi</th>
               </tr>
             </thead>
-            <tbody className="text-gray-700">
+            <tbody className="text-gray-600 text-sm">
               {loading ? (
-                <tr><td colSpan={16} className="p-4 text-center">Loading data...</td></tr>
+                <tr>
+                  <td colSpan={16} className="p-12 text-center">
+                    <div className="flex flex-col items-center gap-3 text-gray-400">
+                      <Loader2 className="animate-spin text-green-500" size={32} />
+                      <span className="font-medium animate-pulse">Memuat data aset...</span>
+                    </div>
+                  </td>
+                </tr>
               ) : assets.length === 0 ? (
-                <tr><td colSpan={16} className="p-4 text-center">Tidak ada data aset</td></tr>
+                <tr>
+                  <td colSpan={16} className="p-12 text-center text-gray-400 flex-col items-center justify-center">
+                    <Search className="mx-auto text-gray-300 mb-3" size={48} />
+                    <span className="font-medium">Tidak ada data aset ditemukan</span>
+                  </td>
+                </tr>
               ) : (
                 assets.map((asset, idx) => (
-                  <tr key={asset.id} className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-green-50 border-b border-gray-100`}>
-                    <td className="p-3 font-semibold">{asset.nomorAset}</td>
-                    <td className="p-3">{asset.namaAset}</td>
-                    <td className="p-3">{asset.kodeKelas || '-'}</td>
-                    <td className="p-3">{asset.kelasAsetSmbr || '-'}</td>
-                    <td className="p-3"><span className="text-xs font-bold text-green-800 uppercase">{asset.kategoriSig || 'PERLENGKAPAN'}</span></td>
-                    <td className="p-3">{getKondisiBadge(asset.kondisi)}</td>
-                    <td className="p-3 font-bold">{asset.qty}</td>
-                    <td className="p-3">{asset.satuan || '-'}</td>
-                    <td className="p-3">{asset.site || '-'}</td>
-                    <td className="p-3">{asset.latitude || '-'}</td>
-                    <td className="p-3">{asset.longitude || '-'}</td>
-                    <td className="p-3">{asset.tanggalUpdate ? format(new Date(asset.tanggalUpdate), "dd/MM/yy, HH.mm") : '-'}</td>
-                    <td className="p-3 truncate max-w-[150px]" title={asset.keterangan || ""}>{asset.keterangan || '-'}</td>
+                  <tr 
+                    key={asset.id} 
+                    className="hover:bg-green-50/50 border-b border-gray-50/50 transition-all duration-200 group"
+                  >
+                    <td className="p-4 pl-6 font-semibold text-gray-800">{asset.nomorAset}</td>
+                    <td className="p-4 text-gray-700 font-medium">{asset.namaAset}</td>
+                    <td className="p-4 text-gray-500">{asset.kodeKelas || '-'}</td>
+                    <td className="p-4 text-gray-500">{asset.kelasAsetSmbr || '-'}</td>
+                    <td className="p-4"><span className="text-[10px] font-bold text-green-700 bg-green-100/50 px-2 py-1 rounded-md uppercase">{asset.kategoriSig || 'PERLENGKAPAN'}</span></td>
+                    <td className="p-4">{getKondisiBadge(asset.kondisi)}</td>
+                    <td className="p-4 font-bold text-gray-700">{asset.qty}</td>
+                    <td className="p-4 text-gray-500">{asset.satuan || '-'}</td>
+                    <td className="p-4 text-gray-500">{asset.site || '-'}</td>
+                    <td className="p-4 text-gray-500">{asset.latitude || '-'}</td>
+                    <td className="p-4 text-gray-500">{asset.longitude || '-'}</td>
+                    <td className="p-4 text-gray-500">{asset.tanggalUpdate ? format(new Date(asset.tanggalUpdate), "dd/MM/yy, HH.mm") : '-'}</td>
+                    <td className="p-4 truncate max-w-[150px] text-gray-500" title={asset.keterangan || ""}>{asset.keterangan || '-'}</td>
+                    
                     {/* Kolom Foto */}
-                    <td className="p-2 text-center">
+                    <td className="p-4 text-center">
                       {asset.fotoUrl ? (
                         <button
                           onClick={() => setZoomedImage(getFileUrl(asset.fotoUrl) as string)}
                           title="Lihat Foto"
-                          className="flex justify-center w-full"
+                          className="flex justify-center w-full focus:outline-none"
                         >
                           <img
                             src={getFileUrl(asset.fotoUrl)}
                             alt="Foto Aset"
-                            className="w-12 h-12 object-cover rounded border border-gray-200 mx-auto hover:scale-110 transition-transform cursor-pointer"
+                            className="w-10 h-10 object-cover rounded-xl shadow-sm border border-gray-100 mx-auto hover:scale-125 hover:shadow-lg transition-all duration-300 cursor-pointer opacity-90 group-hover:opacity-100"
                             onError={(e) => { 
                               (e.target as HTMLImageElement).style.display = 'none';
-                              (e.target as HTMLImageElement).parentElement!.innerText = 'Link Foto Error'; 
+                              (e.target as HTMLImageElement).parentElement!.innerText = 'Error'; 
                             }}
                           />
                         </button>
@@ -239,26 +291,35 @@ export default function Dashboard() {
                         <span className="text-gray-300 text-xs">—</span>
                       )}
                     </td>
-                    {/* Kolom QR Code Generated dari ID */}
-                    <td className="p-2 text-center">
+                    
+                    {/* Kolom QR Code */}
+                    <td className="p-4 text-center">
                       <button 
                         onClick={() => setZoomedImage(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${asset.id}`)}
                         title="Perbesar QR Code"
-                        className="flex justify-center w-full"
+                        className="flex justify-center w-full focus:outline-none"
                       >
                         <img
                           src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${asset.id}`}
                           alt={`QR Code ${asset.id}`}
-                          className="w-12 h-12 object-contain mx-auto hover:scale-110 transition-transform shadow-sm bg-white cursor-pointer"
+                          className="w-10 h-10 object-contain mx-auto hover:scale-125 hover:shadow-lg transition-all duration-300 shadow-sm bg-white rounded-lg p-1 opacity-90 group-hover:opacity-100"
                         />
                       </button>
                     </td>
-                    <td className="p-3">
-                      <div className="flex items-center justify-center gap-2">
-                        <button className="p-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded-full transition" title="Edit">
+                    <td className="p-4 pr-6">
+                      <div className="flex items-center justify-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
+                        <button 
+                          onClick={() => handleEdit(asset.id)}
+                          className="p-2 bg-gray-50 text-gray-600 hover:text-green-600 hover:bg-green-100 rounded-xl transition-all duration-300 hover:scale-110" 
+                          title="Edit"
+                        >
                           <Edit size={14} />
                         </button>
-                        <button className="p-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-full transition" title="Hapus">
+                        <button 
+                          onClick={() => handleDelete(asset.id, asset.namaAset)}
+                          className="p-2 bg-gray-50 text-gray-600 hover:text-red-600 hover:bg-red-100 rounded-xl transition-all duration-300 hover:scale-110" 
+                          title="Hapus"
+                        >
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -269,71 +330,146 @@ export default function Dashboard() {
             </tbody>
           </table>
           {fetchingMore && (
-            <div className="flex justify-center p-4">
-              <Loader2 className="animate-spin text-green-700" size={24} />
+            <div className="flex justify-center p-6 border-t border-gray-50">
+              <Loader2 className="animate-spin text-green-500" size={24} />
             </div>
           )}
         </div>
       </main>
 
+      {/* FLOATING ACTION BUTTON */}
       <button
         onClick={handleExportExcel}
         disabled={isExporting}
         title="Export Data ke Excel"
-        className={`fixed bottom-6 right-6 p-4 ${isExporting ? 'bg-gray-400' : 'bg-[#1B5E40] hover:bg-green-800'} text-white rounded-full shadow-xl transition transform hover:scale-105 z-40`}
+        className={`fixed bottom-8 right-8 p-4 ${isExporting ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} text-white rounded-2xl shadow-xl shadow-green-600/20 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 active:scale-95 z-40 group`}
       >
-        {isExporting ? <Loader2 className="animate-spin" size={24} /> : <DownloadCloud size={24} />}
+        {isExporting ? (
+          <Loader2 className="animate-spin" size={24} />
+        ) : (
+          <div className="flex items-center gap-2">
+            <DownloadCloud size={24} className="group-hover:animate-bounce" />
+          </div>
+        )}
       </button>
 
+      {/* SIDEBAR MEMAKAI EFFECT GLASS DAN LEBIH MODERN */}
       {isSidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex">
-          <div className="bg-[#1B5E40] w-72 h-full shadow-2xl flex flex-col transform transition-transform text-white">
-            <div className="p-4 flex items-center justify-between border-b border-green-800">
-              <h2 className="font-bold text-lg flex items-center gap-2">Pilih Tabel</h2>
-              <button onClick={() => setIsSidebarOpen(false)} className="p-1 bg-white/10 rounded-full hover:bg-white/20"><X size={20} /></button>
+        <div className="fixed inset-0 z-50 flex transition-opacity duration-300">
+          {/* OVERLAY */}
+          <div 
+            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" 
+            onClick={() => setIsSidebarOpen(false)}
+          ></div>
+          
+          {/* SIDEBAR PANEL */}
+          <div className="relative w-80 h-full bg-white shadow-2xl flex flex-col transform transition-transform duration-300 text-gray-800 border-r border-gray-100 animate-in slide-in-from-left">
+            <div className="p-6 flex items-center justify-between border-b border-gray-100">
+              <h2 className="font-bold text-lg flex items-center gap-3 text-gray-800">
+                <div className="p-2 bg-green-100 text-green-700 rounded-xl">
+                  <Menu size={18} />
+                </div>
+                Navigasi
+              </h2>
+              <button 
+                onClick={() => setIsSidebarOpen(false)} 
+                className="p-2 bg-gray-50 text-gray-500 rounded-full hover:bg-red-50 hover:text-red-500 transition-colors"
+              >
+                <X size={18} />
+              </button>
             </div>
-            <div className="p-4 flex-1 space-y-3">
-              <div className="p-3 rounded-xl bg-white text-[#1B5E40] font-bold shadow flex justify-between items-center cursor-pointer">
-                <span>📦 Aset <br /><span className="text-xs text-gray-500 font-normal">CRUD + semua kolom</span></span>
-                <span className="text-green-600">✓</span>
+            
+            <div className="p-4 flex-1 space-y-2 overflow-y-auto">
+              <div className="p-4 rounded-2xl bg-green-50 text-green-800 shadow-sm border border-green-100 flex justify-between items-center cursor-pointer transition-all hover:scale-[1.02]">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-xl shadow-sm text-green-600"><Home size={18} /></div>
+                  <span className="font-bold">📦 Data Aset <br /><span className="text-[11px] text-green-600/70 font-medium">Manajemen Lengkap</span></span>
+                </div>
+                <span className="text-green-600 font-bold bg-white w-6 h-6 flex items-center justify-center rounded-full shadow-sm">✓</span>
               </div>
-              <div className="p-3 rounded-xl bg-white/10 hover:bg-white/20 font-bold flex justify-between items-center cursor-pointer transition">
-                <span>👥 User <br /><span className="text-xs text-green-200 font-normal">Read-only</span></span>
+              
+              <div className="p-4 rounded-2xl text-gray-600 hover:bg-gray-50 hover:text-gray-900 flex justify-between items-center cursor-pointer border border-transparent hover:border-gray-100 transition-all hover:scale-[1.02]">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gray-100 rounded-xl text-gray-500"><Home size={18} /></div>
+                  <span className="font-bold">👥 Users <br /><span className="text-[11px] text-gray-400 font-medium">Hak Akses & Role</span></span>
+                </div>
               </div>
-              <div className="p-3 rounded-xl bg-white/10 hover:bg-white/20 font-bold flex justify-between items-center cursor-pointer transition">
-                <span>📈 Activity Log <br /><span className="text-xs text-green-200 font-normal">Read-only</span></span>
+              
+              <div className="p-4 rounded-2xl text-gray-600 hover:bg-gray-50 hover:text-gray-900 flex justify-between items-center cursor-pointer border border-transparent hover:border-gray-100 transition-all hover:scale-[1.02]">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gray-100 rounded-xl text-gray-500"><Home size={18} /></div>
+                  <span className="font-bold">📈 Log Aktivitas <br /><span className="text-[11px] text-gray-400 font-medium">History Perubahan</span></span>
+                </div>
               </div>
             </div>
-            <div className="p-4">
-              <button className="flex items-center justify-center gap-2 p-3 w-full bg-red-500 hover:bg-red-600 rounded-xl font-bold transition shadow-md">
-                <LogOut size={18} /> Logout
+            
+            <div className="p-6 border-t border-gray-100">
+              <button className="flex items-center justify-center gap-2 p-4 w-full bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-2xl font-bold transition-all duration-300 hover:shadow-lg hover:shadow-red-500/20 active:scale-95 group">
+                <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" /> Logout
               </button>
             </div>
           </div>
-          <div className="flex-1 cursor-pointer" onClick={() => setIsSidebarOpen(false)}></div>
         </div>
       )}
 
-      {/* Modal Zoom Panel (Lightbox untuk Foto/QR Code) */}
+      {/* MODAL ZOOM PANEL */}
       {zoomedImage && (
         <div 
-          className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 transition-all duration-300"
           onClick={() => setZoomedImage(null)}
         >
-          <div className="relative max-w-4xl w-full flex justify-center" onClick={(e) => e.stopPropagation()}>
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"></div>
+          <div className="relative max-w-4xl w-full flex justify-center animate-in zoom-in duration-300" onClick={(e) => e.stopPropagation()}>
             <button 
-              className="absolute -top-12 right-0 text-white hover:text-gray-300 bg-white/20 hover:bg-white/30 p-2 rounded-full transition-colors z-10"
+              className="absolute -top-14 right-0 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all duration-300 hover:scale-110 z-10"
               onClick={() => setZoomedImage(null)}
               title="Tutup (Esc)"
             >
               <X size={24} />
             </button>
-            <div className="bg-white p-2 rounded-lg shadow-2xl relative overflow-hidden">
+            <div className="bg-white p-3 rounded-3xl shadow-2xl relative overflow-hidden border border-gray-100">
               <img 
                 src={zoomedImage} 
                 alt="Zoomed" 
-                className="max-h-[80vh] max-w-[90vw] object-contain rounded bg-white"
+                className="max-h-[80vh] max-w-[90vw] object-contain rounded-2xl bg-gray-50"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CUSTOM DELETE CONFIRMATION MODAL */}
+      {deleteConfirm.isOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 transition-all duration-300">
+          <div 
+            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+            onClick={() => !isDeleting && setDeleteConfirm({ isOpen: false, id: "", nama: "" })}
+          ></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 animate-in zoom-in-95 duration-300 border border-gray-100 flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-5 shadow-inner">
+              <AlertTriangle size={32} className={`${isDeleting ? "animate-pulse" : ""}`} />
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Konfirmasi Hapus</h3>
+            <p className="text-gray-500 mb-8 text-sm leading-relaxed">
+              Apakah Anda yakin ingin menghapus data aset <br/>
+              <strong className="text-gray-700 font-bold">"{deleteConfirm.nama}"</strong>?<br/>
+              <span className="text-xs text-red-400 mt-2 block">Tindakan ini tidak dapat dibatalkan.</span>
+            </p>
+            <div className="flex gap-3 w-full">
+              <button 
+                onClick={() => setDeleteConfirm({ isOpen: false, id: "", nama: "" })}
+                disabled={isDeleting}
+                className="flex-1 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-all duration-300 active:scale-95 disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={executeDelete}
+                disabled={isDeleting}
+                className="flex-1 py-3 px-4 bg-red-500 hover:bg-red-600 text-white font-bold rounded-2xl transition-all duration-300 active:scale-95 shadow-lg shadow-red-500/30 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 className="animate-spin" size={18} /> : "Ya, Hapus"}
+              </button>
             </div>
           </div>
         </div>
