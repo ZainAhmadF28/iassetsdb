@@ -12,11 +12,16 @@ export async function PUT(
     const updatedAsset = await prisma.asset.update({
       where: { id },
       data: {
+        nomorAset: body.nomorAset,
         namaAset: body.namaAset,
-        kondisi: body.kondisi,
+        kelasAsetSmbr: body.kelasAsetSmbr,
+        kelasAsetSig: body.kelasAsetSig || body.kategoriSig, // Handle both
         qty: body.qty !== undefined ? Number(body.qty) : undefined,
         satuan: body.satuan,
+        latitude: body.latitude !== undefined && body.latitude !== null ? parseFloat(body.latitude) : null,
+        longitude: body.longitude !== undefined && body.longitude !== null ? parseFloat(body.longitude) : null,
         site: body.site,
+        kondisi: body.kondisi,
         keterangan: body.keterangan,
         tanggalUpdate: new Date().toISOString(),
       },

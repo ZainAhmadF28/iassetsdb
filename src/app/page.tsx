@@ -5,7 +5,8 @@ import axios from "axios";
 import { format } from "date-fns";
 import {
   Menu, Search, Home, Maximize, LogOut,
-  Edit, Trash2, X, DownloadCloud, Loader2, AlertTriangle
+  Edit, Trash2, X, DownloadCloud, Loader2, AlertTriangle,
+  Package, Users, Activity
 } from "lucide-react";
 
 
@@ -15,7 +16,8 @@ interface Asset {
   namaAset: string;
   kodeKelas: string | null;
   kelasAsetSmbr: string | null;
-  kategoriSig: string | null;
+  kelasAsetSig: string | null;
+  kategoriSig?: string | null; // Keep for backward compatibility if any
   kondisi: string;
   qty: number;
   satuan: string | null;
@@ -128,7 +130,7 @@ export default function Dashboard() {
     if (!url) return undefined;
     if (url.startsWith("http")) return url;
     // Ganti base URL ini sesuai dengan URL dan port backend API Anda (tempat file /uploads/... berada)
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://10.143.172.190:3000";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://10.10.126.233:3000";
     return `${backendUrl}${url}`;
   };
 
@@ -174,10 +176,15 @@ export default function Dashboard() {
     setIsSaving(true);
     try {
       const response = await axios.put(`/api/assets/${editAsset.id}`, {
+        nomorAset: editAsset.nomorAset,
         namaAset: editAsset.namaAset,
+        kelasAsetSmbr: editAsset.kelasAsetSmbr,
+        kelasAsetSig: editAsset.kelasAsetSig || editAsset.kategoriSig,
         kondisi: editAsset.kondisi,
         qty: editAsset.qty,
         satuan: editAsset.satuan,
+        latitude: editAsset.latitude,
+        longitude: editAsset.longitude,
         site: editAsset.site,
         keterangan: editAsset.keterangan,
       });
@@ -290,7 +297,7 @@ export default function Dashboard() {
                     <td className="p-4 text-gray-700 font-medium">{asset.namaAset}</td>
                     <td className="p-4 text-gray-500">{asset.kodeKelas || '-'}</td>
                     <td className="p-4 text-gray-500">{asset.kelasAsetSmbr || '-'}</td>
-                    <td className="p-4"><span className="text-[10px] font-bold text-green-700 bg-green-100/50 px-2 py-1 rounded-md uppercase">{asset.kategoriSig || 'PERLENGKAPAN'}</span></td>
+                    <td className="p-4"><span className="text-[10px] font-bold text-green-700 bg-green-100/50 px-2 py-1 rounded-md uppercase">{asset.kelasAsetSig || asset.kategoriSig || '-'}</span></td>
                     <td className="p-4">{getKondisiBadge(asset.kondisi)}</td>
                     <td className="p-4 font-bold text-gray-700">{asset.qty}</td>
                     <td className="p-4 text-gray-500">{asset.satuan || '-'}</td>
@@ -413,23 +420,23 @@ export default function Dashboard() {
             <div className="p-4 flex-1 space-y-2 overflow-y-auto">
               <div className="p-4 rounded-2xl bg-green-50 text-green-800 shadow-sm border border-green-100 flex justify-between items-center cursor-pointer transition-all hover:scale-[1.02]">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white rounded-xl shadow-sm text-green-600"><Home size={18} /></div>
-                  <span className="font-bold">📦 Data Aset <br /><span className="text-[11px] text-green-600/70 font-medium">Manajemen Lengkap</span></span>
+                  <div className="p-2 bg-white rounded-xl shadow-sm text-green-600"><Package size={18} /></div>
+                  <span className="font-bold">Data Aset <br /><span className="text-[11px] text-green-600/70 font-medium">Manajemen Lengkap</span></span>
                 </div>
                 <span className="text-green-600 font-bold bg-white w-6 h-6 flex items-center justify-center rounded-full shadow-sm">✓</span>
               </div>
               
               <div className="p-4 rounded-2xl text-gray-600 hover:bg-gray-50 hover:text-gray-900 flex justify-between items-center cursor-pointer border border-transparent hover:border-gray-100 transition-all hover:scale-[1.02]">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-100 rounded-xl text-gray-500"><Home size={18} /></div>
-                  <span className="font-bold">👥 Users <br /><span className="text-[11px] text-gray-400 font-medium">Hak Akses & Role</span></span>
+                  <div className="p-2 bg-gray-100 rounded-xl text-gray-500"><Users size={18} /></div>
+                  <span className="font-bold">Users <br /><span className="text-[11px] text-gray-400 font-medium">Hak Akses & Role</span></span>
                 </div>
               </div>
               
               <div className="p-4 rounded-2xl text-gray-600 hover:bg-gray-50 hover:text-gray-900 flex justify-between items-center cursor-pointer border border-transparent hover:border-gray-100 transition-all hover:scale-[1.02]">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-100 rounded-xl text-gray-500"><Home size={18} /></div>
-                  <span className="font-bold">📈 Log Aktivitas <br /><span className="text-[11px] text-gray-400 font-medium">History Perubahan</span></span>
+                  <div className="p-2 bg-gray-100 rounded-xl text-gray-500"><Activity size={18} /></div>
+                  <span className="font-bold">Log Aktivitas <br /><span className="text-[11px] text-gray-400 font-medium">History Perubahan</span></span>
                 </div>
               </div>
             </div>
@@ -530,22 +537,73 @@ export default function Dashboard() {
             
             <div className="flex flex-col gap-4 overflow-y-auto max-h-[60vh] custom-scrollbar px-1 pb-2">
               <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">ID Aset</label>
+                <input
+                  type="text"
+                  value={editAsset.id || ""}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-200 text-gray-500 font-mono text-xs cursor-not-allowed shadow-sm"
+                  disabled
+                  readOnly
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nomor Aset</label>
+                <input
+                  type="text"
+                  value={editAsset.nomorAset || ""}
+                  onChange={(e) => setEditAsset({...editAsset, nomorAset: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                  disabled={isSaving}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nama Aset</label>
-                <input 
-                  type="text" 
-                  value={editAsset.namaAset || ""} 
+                <input
+                  type="text"
+                  value={editAsset.namaAset || ""}
                   onChange={(e) => setEditAsset({...editAsset, namaAset: e.target.value})}
                   className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
                   disabled={isSaving}
                 />
               </div>
-              
+
+              <div className="flex gap-4">
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kelas SMBR</label>
+                  <input
+                    type="text"
+                    value={editAsset.kelasAsetSmbr || ""}
+                    onChange={(e) => setEditAsset({...editAsset, kelasAsetSmbr: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isSaving}
+                  />
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kategori (SIG)</label>
+                  <select
+                    value={editAsset.kelasAsetSig || editAsset.kategoriSig || ""}
+                    onChange={(e) => setEditAsset({...editAsset, kelasAsetSig: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isSaving}
+                  >
+                    <option value="">-- Pilih Kategori --</option>
+                    <option value="BANGUNAN">Bangunan</option>
+                    <option value="INFRASTRUKTUR">Infrastruktur</option>
+                    <option value="KENDARAAN & ALAT BERAT">Kendaraan & Alat Berat</option>
+                    <option value="PERLENGKAPAN">Perlengkapan</option>
+                    <option value="TANAH">Tanah</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="flex gap-4">
                 <div className="flex flex-col gap-1 flex-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Qty</label>
-                  <input 
-                    type="number" 
-                    value={editAsset.qty || 0} 
+                  <input
+                    type="number"
+                    value={editAsset.qty || 0}
                     onChange={(e) => setEditAsset({...editAsset, qty: parseInt(e.target.value, 10)})}
                     className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
                     disabled={isSaving}
@@ -553,10 +611,35 @@ export default function Dashboard() {
                 </div>
                 <div className="flex flex-col gap-1 flex-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Satuan</label>
-                  <input 
-                    type="text" 
-                    value={editAsset.satuan || ""} 
+                  <input
+                    type="text"
+                    value={editAsset.satuan || ""}
                     onChange={(e) => setEditAsset({...editAsset, satuan: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isSaving}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Latitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={editAsset.latitude || ""}
+                    onChange={(e) => setEditAsset({...editAsset, latitude: parseFloat(e.target.value) || null})}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isSaving}
+                  />
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Longitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={editAsset.longitude || ""}
+                    onChange={(e) => setEditAsset({...editAsset, longitude: parseFloat(e.target.value) || null})}
                     className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
                     disabled={isSaving}
                   />
@@ -565,8 +648,8 @@ export default function Dashboard() {
 
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kondisi</label>
-                <select 
-                  value={editAsset.kondisi || "BAIK"} 
+                <select
+                  value={editAsset.kondisi || "BAIK"}
                   onChange={(e) => setEditAsset({...editAsset, kondisi: e.target.value})}
                   className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
                   disabled={isSaving}
@@ -579,10 +662,10 @@ export default function Dashboard() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Site / Lokasi</label>
-                <input 
-                  type="text" 
-                  value={editAsset.site || ""} 
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Site</label>
+                <input
+                  type="text"
+                  value={editAsset.site || ""}
                   onChange={(e) => setEditAsset({...editAsset, site: e.target.value})}
                   className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
                   disabled={isSaving}
@@ -590,9 +673,9 @@ export default function Dashboard() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Keterangan</label>
-                <textarea 
-                  value={editAsset.keterangan || ""} 
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Keterangan / Catatan</label>
+                <textarea
+                  value={editAsset.keterangan || ""}
                   onChange={(e) => setEditAsset({...editAsset, keterangan: e.target.value})}
                   className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all resize-none h-24 shadow-sm"
                   disabled={isSaving}
