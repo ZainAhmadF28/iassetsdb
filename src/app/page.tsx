@@ -123,7 +123,7 @@ export default function Dashboard() {
     if (!url) return undefined;
     if (url.startsWith("http")) return url;
     // Ganti base URL ini sesuai dengan URL dan port backend API Anda (tempat file /uploads/... berada)
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://192.168.1.6:3000";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://10.143.172.190:3000";
     return `${backendUrl}${url}`;
   };
 
@@ -214,7 +214,8 @@ export default function Dashboard() {
           <table className="w-full whitespace-nowrap text-left border-collapse min-w-full">
             <thead className="sticky top-0 z-10 backdrop-blur-md bg-white/90">
               <tr className="text-gray-500 text-[11px] font-bold uppercase tracking-wider border-b border-gray-100">
-                <th className="p-4 pl-6">Nomor Aset</th>
+                <th className="p-4 pl-6">ID</th>
+                <th className="p-4">Nomor Aset</th>
                 <th className="p-4">Nama Aset</th>
                 <th className="p-4">Kode Kelas</th>
                 <th className="p-4">Kelas SMBR</th>
@@ -235,7 +236,7 @@ export default function Dashboard() {
             <tbody className="text-gray-600 text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={16} className="p-12 text-center">
+                  <td colSpan={17} className="p-12 text-center">
                     <div className="flex flex-col items-center gap-3 text-gray-400">
                       <Loader2 className="animate-spin text-green-500" size={32} />
                       <span className="font-medium animate-pulse">Memuat data aset...</span>
@@ -244,7 +245,7 @@ export default function Dashboard() {
                 </tr>
               ) : assets.length === 0 ? (
                 <tr>
-                  <td colSpan={16} className="p-12 text-center text-gray-400 flex-col items-center justify-center">
+                  <td colSpan={17} className="p-12 text-center text-gray-400 flex-col items-center justify-center">
                     <Search className="mx-auto text-gray-300 mb-3" size={48} />
                     <span className="font-medium">Tidak ada data aset ditemukan</span>
                   </td>
@@ -255,7 +256,8 @@ export default function Dashboard() {
                     key={asset.id} 
                     className="hover:bg-green-50/50 border-b border-gray-50/50 transition-all duration-200 group"
                   >
-                    <td className="p-4 pl-6 font-semibold text-gray-800">{asset.nomorAset}</td>
+                    <td className="p-4 pl-6 text-gray-500 font-mono text-[11px] truncate max-w-[100px]" title={asset.id}>{asset.id}</td>
+                    <td className="p-4 font-semibold text-gray-800">{asset.nomorAset}</td>
                     <td className="p-4 text-gray-700 font-medium">{asset.namaAset}</td>
                     <td className="p-4 text-gray-500">{asset.kodeKelas || '-'}</td>
                     <td className="p-4 text-gray-500">{asset.kelasAsetSmbr || '-'}</td>

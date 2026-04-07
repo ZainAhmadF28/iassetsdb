@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
     // ── Column Definitions ──
     sheet.columns = [
       { header: "No",           key: "no",            width: 5  },
+      { header: "ID Aset",      key: "id",            width: 20 },
       { header: "Nomor Aset",   key: "nomorAset",     width: 22 },
       { header: "Nama Aset",    key: "namaAset",      width: 32 },
       { header: "Kode Kelas",   key: "kodeKelas",     width: 15 },
@@ -78,6 +79,7 @@ export async function GET(req: NextRequest) {
 
       row.values = {
         no:            i + 1,
+        id:            asset.id,
         nomorAset:     asset.nomorAset,
         namaAset:      asset.namaAset,
         kodeKelas:     asset.kodeKelas     || "-",
@@ -119,14 +121,40 @@ export async function GET(req: NextRequest) {
       try {
         const fotoUrl = asset.fotoUrl;
         if (fotoUrl) {
-          if (fotoUrl.startsWith("http")) {
-            // Tulis URL sebagai hyperlink
-            const fotoCell = row.getCell("foto");
-            fotoCell.value = { text: "Lihat Foto", hyperlink: fotoUrl };
-            fotoCell.font = { color: { argb: "FF1565C0" }, underline: true };
-            fotoCell.alignment = { vertical: "middle", horizontal: "center" };
+          let extension = "png";
+          if (fotoUrl.toLowerCase().endsWith(".jpg") || fotoUrl.toLowerCase().endsWith(".jpeg")) extension = "jpeg";
+
+          let buffer;
+          try {
+            const urlToFetch = fotoUrl.startsWith("http") 
+              ? fotoUrl 
+              : `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://10.143.172.190:3000"}${fotoUrl}`;
+            
+            const response = await fetch(urlToFetch);
+            if (response.ok) {
+              const arrayBuffer = await response.arrayBuffer();
+              buffer = Buffer.from(arrayBuffer);
+            }
+          } catch (fetchErr) {
+            console.error("Gagal download gambar untuk digabung ke excel", fetchErr);
           }
-          // Foto lokal tidak bisa di-embed dari Next.js browser fetch, skip embed
+
+          if (buffer) {
+            const imageId = workbook.addImage({
+              buffer: buffer,
+              extension: extension as any,
+            });
+            sheet.addImage(imageId, {
+              tl: { col: 15 + 0.1, row: rowIndex - 1 + 0.1 } as any, // Kolom Foto index ke-15 (0-based)
+              ext: { width: 65, height: 65 },
+              editAs: "oneCell",
+            });
+          } else {
+             // Fallback jika gagal didownload, outputkan nama file atau link saja
+             const fotoCell = row.getCell("foto");
+             fotoCell.value = { text: "Link Foto", hyperlink: fotoUrl.startsWith("http") ? fotoUrl : `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://10.143.172.190:3000"}${fotoUrl}` };
+             fotoCell.font = { color: { argb: "FF1565C0" }, underline: true };
+          }
         }
       } catch (e) {
         console.error("Foto error:", e);
@@ -134,8 +162,8 @@ export async function GET(req: NextRequest) {
 
       // ── QR Code: Generate dari nomorAset ──
       try {
-        if (asset.nomorAset) {
-          const qrBase64 = await QRCode.toDataURL(asset.nomorAset, {
+        if (asset.id) { // ganti menggunakan `id` agar unik seperti qr di frontend page.tsx
+          const qrBase64 = await QRCode.toDataURL(asset.id, {
             margin: 1,
             width: 100,
           });
@@ -145,7 +173,7 @@ export async function GET(req: NextRequest) {
             extension: "png",
           });
           sheet.addImage(imageId, {
-            tl: { col: 15 + 0.1, row: rowIndex - 1 + 0.1 } as any,
+            tl: { col: 16 + 0.1, row: rowIndex - 1 + 0.1 } as any, // Kolom QR Code index ke-16 (0-based)
             ext: { width: 65, height: 65 },
             editAs: "oneCell",
           });
@@ -175,4 +203,6 @@ export async function GET(req: NextRequest) {
     console.error("Export error:", error);
     return NextResponse.json({ error: "Gagal export Excel" }, { status: 500 });
   }
+
+  
 }

@@ -25,15 +25,15 @@ export async function GET(request: Request) {
 
     const total = await prisma.asset.count({ where });
 
-    return NextResponse.json({
+    return Response.json({
       data: assets,
       total,
       hasMore: skip + assets.length < total,
     });
   } catch (error) {
-    console.error("Error fetching assets:", error);
-    return NextResponse.json(
-      { error: "Gagal mengambil data aset" }, 
+    console.error("ERROR ASSETS:", error);
+    return Response.json(
+      { error: "DB ERROR" }, 
       { status: 500 }
     );
   }
