@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { format } from "date-fns";
 import {
   Menu, Search, Home, Maximize, LogOut,
-  Edit, Trash2, X, DownloadCloud, Loader2, AlertTriangle,
-  Package, Users, Activity
+  Edit, Trash2, X, DownloadCloud, Loader2, AlertTriangle
 } from "lucide-react";
+import Sidebar from "@/components/Sidebar";
 
 
 interface Asset {
@@ -51,12 +51,21 @@ export default function Dashboard() {
   const [editAsset, setEditAsset] = useState<Partial<Asset>>({});
   const [isSaving, setIsSaving] = useState(false);
 
-  const fetchAssets = async (currentPage: number, currentSearch: string, isNewSearch: boolean) => {
+  // FILTER STATE
+  const [filterKondisi, setFilterKondisi] = useState<string>("");
+  const [filterKategori, setFilterKategori] = useState<string>("");
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+
+  const fetchAssets = async (currentPage: number, currentSearch: string, isNewSearch: boolean, kondisi: string = "", kategori: string = "") => {
     try {
       if (isNewSearch) setLoading(true);
       else setFetchingMore(true);
 
-      const { data } = await axios.get(`/api/assets?page=${currentPage}&limit=50&search=${currentSearch}`);
+      let url = `/api/assets?page=${currentPage}&limit=50&search=${currentSearch}`;
+      if (kondisi) url += `&kondisi=${kondisi}`;
+      if (kategori) url += `&kategori=${kategori}`;
+
+      const { data } = await axios.get(url);
 
       if (isNewSearch) {
         setAssets(data.data);
@@ -73,20 +82,21 @@ export default function Dashboard() {
     }
   };
 
-  // Efek berjalan setiap pencarian berubah (debounce 500ms agar server tidak berat)
+  // Efek berjalan setiap pencarian atau filter berubah (debounce 500ms agar server tidak berat)
   useEffect(() => {
     const timer = setTimeout(() => {
       setPage(1);
-      fetchAssets(1, search, true);
+      fetchAssets(1, search, true, filterKondisi, filterKategori);
     }, 500);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, filterKondisi, filterKategori]);
 
   // Efek berjalan khusus jika Halaman bertambah dari Infinite Scroll
   useEffect(() => {
     if (page > 1) {
-      fetchAssets(page, search, false);
+      fetchAssets(page, search, false, filterKondisi, filterKategori);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   // Fungsi Deteksi Scroll mentok bawah
@@ -225,9 +235,10 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* SEARCH BAR (MODERN) */}
-      <div className="px-4 py-4 shrink-0 z-10 w-full max-w-2xl mx-auto transition-all duration-300">
-        <div className="relative group">
+      {/* SEARCH BAR + FILTER BUTTON */}
+      <div className="px-4 py-4 shrink-0 z-10 w-full max-w-6xl mx-auto flex gap-3 items-center">
+        {/* Search Bar */}
+        <div className="relative group flex-1">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="text-gray-400 group-focus-within:text-green-500 transition-colors duration-300" size={18} />
           </div>
@@ -239,7 +250,181 @@ export default function Dashboard() {
             className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white border border-gray-200/80 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-green-500/10 focus:border-green-400 shadow-sm transition-all duration-300 hover:shadow-md"
           />
         </div>
+
+        {/* Filter Toggle Button */}
+        <button
+          onClick={() => setFilterPanelOpen(!filterPanelOpen)}
+          className="px-5 py-3.5 rounded-2xl bg-white border border-gray-200/80 text-gray-700 hover:text-gray-900 font-semibold shadow-sm hover:shadow-md transition-all duration-300 whitespace-nowrap flex items-center gap-2"
+        >
+          <span>Filter</span>
+          <span className={`transition-transform duration-300 ${filterPanelOpen ? "rotate-180" : ""}`}>▼</span>
+        </button>
       </div>
+
+{/* FILTER MODAL */}
+      {filterPanelOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 transition-all duration-300">
+          <div 
+            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+            onClick={() => setFilterPanelOpen(false)}
+          ></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-7 animate-in slide-in-from-bottom-5 duration-300 border border-gray-100 flex flex-col max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6 pb-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-800">Filter Aset</h2>
+              <button 
+                onClick={() => setFilterPanelOpen(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Kategori Section */}
+            <div className="mb-8">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Kategori</h3>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setFilterKategori("")}
+                  className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
+                    filterKategori === "" 
+                      ? "bg-green-600 text-white shadow-lg shadow-green-600/30" 
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                  }`}
+                >
+                  Semua
+                </button>
+                <button
+                  onClick={() => setFilterKategori("BANGUNAN")}
+                  className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
+                    filterKategori === "BANGUNAN" 
+                      ? "bg-green-600 text-white shadow-lg shadow-green-600/30" 
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                  }`}
+                >
+                  Bangunan
+                </button>
+                <button
+                  onClick={() => setFilterKategori("INFRASTRUKTUR")}
+                  className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
+                    filterKategori === "INFRASTRUKTUR" 
+                      ? "bg-green-600 text-white shadow-lg shadow-green-600/30" 
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                  }`}
+                >
+                  Infrastruktur
+                </button>
+                <button
+                  onClick={() => setFilterKategori("KENDARAAN & ALAT BERAT")}
+                  className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
+                    filterKategori === "KENDARAAN & ALAT BERAT" 
+                      ? "bg-green-600 text-white shadow-lg shadow-green-600/30" 
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                  }`}
+                >
+                  Kendaraan & Alat Berat
+                </button>
+                <button
+                  onClick={() => setFilterKategori("PERLENGKAPAN")}
+                  className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
+                    filterKategori === "PERLENGKAPAN" 
+                      ? "bg-green-600 text-white shadow-lg shadow-green-600/30" 
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                  }`}
+                >
+                  Perlengkapan
+                </button>
+                <button
+                  onClick={() => setFilterKategori("TANAH")}
+                  className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
+                    filterKategori === "TANAH" 
+                      ? "bg-green-600 text-white shadow-lg shadow-green-600/30" 
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                  }`}
+                >
+                  Tanah
+                </button>
+              </div>
+            </div>
+
+            {/* Kondisi Section */}
+            <div className="mb-8">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Kondisi</h3>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setFilterKondisi("")}
+                  className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
+                    filterKondisi === "" 
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30" 
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                  }`}
+                >
+                  Semua Kondisi
+                </button>
+                <button
+                  onClick={() => setFilterKondisi("BAIK")}
+                  className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
+                    filterKondisi === "BAIK" 
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30" 
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                  }`}
+                >
+                  Baik
+                </button>
+                <button
+                  onClick={() => setFilterKondisi("RUSAK")}
+                  className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
+                    filterKondisi === "RUSAK" 
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30" 
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                  }`}
+                >
+                  Rusak
+                </button>
+                <button
+                  onClick={() => setFilterKondisi("RUSAK_BERAT")}
+                  className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
+                    filterKondisi === "RUSAK_BERAT" 
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30" 
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                  }`}
+                >
+                  Rusak Berat
+                </button>
+                <button
+                  onClick={() => setFilterKondisi("HILANG")}
+                  className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
+                    filterKondisi === "HILANG" 
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30" 
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                  }`}
+                >
+                  Hilang
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200">
+              <button 
+                onClick={() => {
+                  setFilterKondisi("");
+                  setFilterKategori("");
+                }}
+                className="flex-1 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-all duration-300"
+              >
+                Reset
+              </button>
+              <button 
+                onClick={() => setFilterPanelOpen(false)}
+                className="flex-1 py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl transition-all duration-300 shadow-lg shadow-green-600/30"
+              >
+                Terapkan Filter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MAIN CONTENT AREA */}
       <main
@@ -391,64 +576,8 @@ export default function Dashboard() {
         )}
       </button>
 
-      {/* SIDEBAR MEMAKAI EFFECT GLASS DAN LEBIH MODERN */}
-      {isSidebarOpen && (
-        <div className="fixed inset-0 z-50 flex transition-opacity duration-300">
-          {/* OVERLAY */}
-          <div 
-            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" 
-            onClick={() => setIsSidebarOpen(false)}
-          ></div>
-          
-          {/* SIDEBAR PANEL */}
-          <div className="relative w-80 h-full bg-white shadow-2xl flex flex-col transform transition-transform duration-300 text-gray-800 border-r border-gray-100 animate-in slide-in-from-left">
-            <div className="p-6 flex items-center justify-between border-b border-gray-100">
-              <h2 className="font-bold text-lg flex items-center gap-3 text-gray-800">
-                <div className="p-2 bg-green-100 text-green-700 rounded-xl">
-                  <Menu size={18} />
-                </div>
-                Navigasi
-              </h2>
-              <button 
-                onClick={() => setIsSidebarOpen(false)} 
-                className="p-2 bg-gray-50 text-gray-500 rounded-full hover:bg-red-50 hover:text-red-500 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            
-            <div className="p-4 flex-1 space-y-2 overflow-y-auto">
-              <div className="p-4 rounded-2xl bg-green-50 text-green-800 shadow-sm border border-green-100 flex justify-between items-center cursor-pointer transition-all hover:scale-[1.02]">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white rounded-xl shadow-sm text-green-600"><Package size={18} /></div>
-                  <span className="font-bold">Data Aset <br /><span className="text-[11px] text-green-600/70 font-medium">Manajemen Lengkap</span></span>
-                </div>
-                <span className="text-green-600 font-bold bg-white w-6 h-6 flex items-center justify-center rounded-full shadow-sm">✓</span>
-              </div>
-              
-              <div className="p-4 rounded-2xl text-gray-600 hover:bg-gray-50 hover:text-gray-900 flex justify-between items-center cursor-pointer border border-transparent hover:border-gray-100 transition-all hover:scale-[1.02]">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-100 rounded-xl text-gray-500"><Users size={18} /></div>
-                  <span className="font-bold">Users <br /><span className="text-[11px] text-gray-400 font-medium">Hak Akses & Role</span></span>
-                </div>
-              </div>
-              
-              <div className="p-4 rounded-2xl text-gray-600 hover:bg-gray-50 hover:text-gray-900 flex justify-between items-center cursor-pointer border border-transparent hover:border-gray-100 transition-all hover:scale-[1.02]">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-100 rounded-xl text-gray-500"><Activity size={18} /></div>
-                  <span className="font-bold">Log Aktivitas <br /><span className="text-[11px] text-gray-400 font-medium">History Perubahan</span></span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-6 border-t border-gray-100">
-              <button className="flex items-center justify-center gap-2 p-4 w-full bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-2xl font-bold transition-all duration-300 hover:shadow-lg hover:shadow-red-500/20 active:scale-95 group">
-                <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" /> Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* SIDEBAR COMPONENT */}
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} currentPage="assets" />
 
       {/* MODAL ZOOM PANEL */}
       {zoomedImage && (

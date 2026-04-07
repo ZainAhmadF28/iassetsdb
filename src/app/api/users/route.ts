@@ -8,47 +8,43 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = (page - 1) * limit;
-    const kondisi = searchParams.get("kondisi") || "";
-    const kategori = searchParams.get("kategori") || "";
 
     const where: any = {};
 
     // Filter berdasarkan search
     if (search) {
       where.OR = [
-        { namaAset: { contains: search, mode: "insensitive" as const } },
-        { nomorAset: { contains: search, mode: "insensitive" as const } },
+        { name: { contains: search, mode: "insensitive" as const } },
+        { email: { contains: search, mode: "insensitive" as const } },
       ];
     }
 
-    // Filter berdasarkan kondisi
-    if (kondisi) {
-      where.kondisi = kondisi;
-    }
-
-    // Filter berdasarkan kategori (kelasAsetSig)
-    if (kategori) {
-      where.kelasAsetSig = kategori;
-    }
-
-    const assets = await prisma.asset.findMany({
+    const users = await prisma.user.findMany({
       where,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
       orderBy: { createdAt: "desc" },
       take: limit,
       skip: skip,
     });
 
-    const total = await prisma.asset.count({ where });
+    const total = await prisma.user.count({ where });
 
     return Response.json({
-      data: assets,
+      data: users,
       total,
-      hasMore: skip + assets.length < total,
+      hasMore: skip + users.length < total,
     });
   } catch (error) {
-    console.error("ERROR ASSETS:", error);
+    console.error("ERROR USERS:", error);
     return Response.json(
-      { error: "DB ERROR" }, 
+      { error: "DB ERROR" },
       { status: 500 }
     );
   }
