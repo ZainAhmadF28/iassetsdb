@@ -43,6 +43,11 @@ export default function Dashboard() {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{isOpen: boolean; id: string; nama: string}>({ isOpen: false, id: "", nama: "" });
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // EDIT STATE
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editAsset, setEditAsset] = useState<Partial<Asset>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const fetchAssets = async (currentPage: number, currentSearch: string, isNewSearch: boolean) => {
     try {
@@ -158,9 +163,33 @@ export default function Dashboard() {
   };
 
   const handleEdit = (id: string) => {
-    // Karena halaman edit belum ada, kita bisa lempar notifikasi atau arahkan ke /edit/[id]
-    // Silakan sesuaikan dengan routing sesungguhnya (contoh: /assets/edit/1)
-    alert(`Fitur edit untuk ID: ${id} dalam tahap pengembangan. Nanti akan dialihkan ke halaman edit form.`);
+    const assetToEdit = assets.find(a => a.id === id);
+    if (!assetToEdit) return;
+    setEditAsset({ ...assetToEdit });
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editAsset.id) return;
+    setIsSaving(true);
+    try {
+      const response = await axios.put(`/api/assets/${editAsset.id}`, {
+        namaAset: editAsset.namaAset,
+        kondisi: editAsset.kondisi,
+        qty: editAsset.qty,
+        satuan: editAsset.satuan,
+        site: editAsset.site,
+        keterangan: editAsset.keterangan,
+      });
+      // Update local state without re-fetching
+      setAssets(prev => prev.map(a => a.id === editAsset.id ? { ...a, ...response.data.data } : a));
+      setEditModalOpen(false);
+    } catch (error) {
+      console.error("Gagal update data", error);
+      alert("Gagal update aset. Silakan coba lagi.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -471,6 +500,120 @@ export default function Dashboard() {
                 className="flex-1 py-3 px-4 bg-red-500 hover:bg-red-600 text-white font-bold rounded-2xl transition-all duration-300 active:scale-95 shadow-lg shadow-red-500/30 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isDeleting ? <Loader2 className="animate-spin" size={18} /> : "Ya, Hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FORM EDIT MODAL */}
+      {editModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 transition-all duration-300">
+          <div 
+            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+            onClick={() => !isSaving && setEditModalOpen(false)}
+          ></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg p-7 animate-in slide-in-from-bottom-5 duration-300 border border-gray-100 flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <div className="p-2 bg-green-100 text-green-700 rounded-xl"><Edit size={18} /></div>
+                Edit Data Aset
+              </h3>
+              <button 
+                onClick={() => !isSaving && setEditModalOpen(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                disabled={isSaving}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="flex flex-col gap-4 overflow-y-auto max-h-[60vh] custom-scrollbar px-1 pb-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nama Aset</label>
+                <input 
+                  type="text" 
+                  value={editAsset.namaAset || ""} 
+                  onChange={(e) => setEditAsset({...editAsset, namaAset: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                  disabled={isSaving}
+                />
+              </div>
+              
+              <div className="flex gap-4">
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Qty</label>
+                  <input 
+                    type="number" 
+                    value={editAsset.qty || 0} 
+                    onChange={(e) => setEditAsset({...editAsset, qty: parseInt(e.target.value, 10)})}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isSaving}
+                  />
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Satuan</label>
+                  <input 
+                    type="text" 
+                    value={editAsset.satuan || ""} 
+                    onChange={(e) => setEditAsset({...editAsset, satuan: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isSaving}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kondisi</label>
+                <select 
+                  value={editAsset.kondisi || "BAIK"} 
+                  onChange={(e) => setEditAsset({...editAsset, kondisi: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                  disabled={isSaving}
+                >
+                  <option value="BAIK">Baik</option>
+                  <option value="RUSAK">Rusak</option>
+                  <option value="RUSAK_BERAT">Rusak Berat</option>
+                  <option value="HILANG">Hilang</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Site / Lokasi</label>
+                <input 
+                  type="text" 
+                  value={editAsset.site || ""} 
+                  onChange={(e) => setEditAsset({...editAsset, site: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                  disabled={isSaving}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Keterangan</label>
+                <textarea 
+                  value={editAsset.keterangan || ""} 
+                  onChange={(e) => setEditAsset({...editAsset, keterangan: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all resize-none h-24 shadow-sm"
+                  disabled={isSaving}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 w-full mt-6 pt-4 border-t border-gray-100">
+              <button 
+                onClick={() => setEditModalOpen(false)}
+                disabled={isSaving}
+                className="flex-1 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-all duration-300 active:scale-95 disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={handleSaveEdit}
+                disabled={isSaving}
+                className="flex-1 py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl transition-all duration-300 active:scale-95 shadow-lg shadow-green-600/30 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isSaving ? <Loader2 className="animate-spin" size={18} /> : "Simpan Perubahan"}
               </button>
             </div>
           </div>
