@@ -15,8 +15,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Asset Management System",
+  title: "Dashboard IAsset",
   description: "Sistem Manajemen Aset SMBR",
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({
