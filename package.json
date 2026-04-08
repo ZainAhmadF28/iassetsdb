@@ -6,13 +6,17 @@
     "dev": "next dev -p 3002",
     "build": "next build",
     "start": "next start -p 3002",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "node -r ts-node/register prisma/seed.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
     "@prisma/client": "^6.19.3",
     "@types/qrcode": "^1.5.6",
     "axios": "^1.14.0",
+    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",

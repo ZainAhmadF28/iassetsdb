@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { format } from "date-fns";
 import {
-  Menu, Search, Home, Maximize, LogOut,
+  Menu, Search, Home, Maximize,
   Edit, Trash2, X, DownloadCloud, Loader2, AlertTriangle
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
+import UserNav from "@/components/UserNav";
 
 
 interface Asset {
@@ -140,7 +141,7 @@ export default function Dashboard() {
     if (!url) return undefined;
     if (url.startsWith("http")) return url;
     // Ganti base URL ini sesuai dengan URL dan port backend API Anda (tempat file /uploads/... berada)
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://10.10.126.233:3000";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://10.10.126.133:3000";
     return `${backendUrl}${url}`;
   };
 
@@ -232,13 +233,23 @@ export default function Dashboard() {
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             {totalRecord} Data Ditemukan
           </div>
+          <UserNav />
         </div>
       </header>
 
       {/* SEARCH BAR + FILTER BUTTON */}
-      <div className="px-4 py-4 shrink-0 z-10 w-full max-w-6xl mx-auto flex gap-3 items-center">
+      <div className="px-4 py-4 shrink-0 z-40 w-full max-w-6xl mx-auto flex gap-3 items-center">
+        {/* Filter Toggle Button */}
+        <button
+          onClick={() => setFilterPanelOpen(!filterPanelOpen)}
+          className="px-5 py-3.5 rounded-2xl bg-white border border-gray-200/80 text-gray-700 hover:text-gray-900 font-semibold shadow-sm hover:shadow-md transition-all duration-300 whitespace-nowrap flex items-center gap-2"
+        >
+          <span>Filter</span>
+          <span className={`transition-transform duration-300 ${filterPanelOpen ? "rotate-180" : ""}`}>▼</span>
+        </button>
+
         {/* Search Bar */}
-        <div className="relative group flex-1">
+        <div className="relative group flex-1 max-w-2xl">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="text-gray-400 group-focus-within:text-green-500 transition-colors duration-300" size={18} />
           </div>
@@ -250,15 +261,6 @@ export default function Dashboard() {
             className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white border border-gray-200/80 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-green-500/10 focus:border-green-400 shadow-sm transition-all duration-300 hover:shadow-md"
           />
         </div>
-
-        {/* Filter Toggle Button */}
-        <button
-          onClick={() => setFilterPanelOpen(!filterPanelOpen)}
-          className="px-5 py-3.5 rounded-2xl bg-white border border-gray-200/80 text-gray-700 hover:text-gray-900 font-semibold shadow-sm hover:shadow-md transition-all duration-300 whitespace-nowrap flex items-center gap-2"
-        >
-          <span>Filter</span>
-          <span className={`transition-transform duration-300 ${filterPanelOpen ? "rotate-180" : ""}`}>▼</span>
-        </button>
       </div>
 
 {/* FILTER MODAL */}

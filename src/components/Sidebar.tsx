@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { X, Menu, Package, Users, Activity } from "lucide-react";
+import { X, Menu, Package, Users, Activity, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -8,6 +10,20 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose, currentPage }: SidebarProps) {
+  const router = useRouter();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      onClose();
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
   return (
     <>
       {isOpen && (
@@ -148,7 +164,30 @@ export default function Sidebar({ isOpen, onClose, currentPage }: SidebarProps) 
               </Link>
             </div>
             
-            <div className="p-6 border-t border-gray-100"></div>
+            {/* FOOTER - User Info & Logout */}
+            <div className="p-6 border-t border-gray-100 space-y-4">
+              {/* User Info */}
+              <div className="bg-white rounded-2xl border border-gray-100 p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm">
+                    {user?.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-800 truncate">{user?.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-600 hover:bg-red-100 font-semibold rounded-2xl transition-all border border-red-100 hover:border-red-200"
+              >
+                <LogOut size={18} />
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       )}
