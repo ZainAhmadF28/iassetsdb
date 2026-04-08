@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const publicRoutes = ["/login"];
 
 export function middleware(request: NextRequest) {
-  const sessionToken = request.cookies.get("sessionToken")?.value;
+  const authToken = request.cookies.get("authToken")?.value;
   const { pathname } = request.nextUrl;
 
   // Allow all requests to public routes
@@ -16,8 +16,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // If protected route and no session, redirect to login
-  if (!sessionToken && !publicRoutes.includes(pathname)) {
+  // If protected route and no auth token, redirect to login
+  if (!authToken && !publicRoutes.includes(pathname)) {
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
   }

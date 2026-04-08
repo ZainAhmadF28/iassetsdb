@@ -1,34 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
-
-// Simple in-memory session store
-const sessions = new Map<string, { userId: string; expiresAt: number }>();
+import jwt from "jsonwebtoken";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
-    const sessionToken = request.cookies.get("sessionToken")?.value;
+    const token = request.cookies.get("authToken")?.value;
 
-    if (!sessionToken) {
+    if (!token) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const session = sessions.get(sessionToken);
-
-    if (!session || session.expiresAt < Date.now()) {
-      sessions.delete(sessionToken);
+    // Verify JWT token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key") as {
+        id: string;
+        email: string;
+        name: string;
+        role: string;
+      };
+    } catch (error) {
+      console.error("Token verification failed:", error);
       return NextResponse.json({ message: "Session expired" }, { status: 401 });
     }
 
     // Get user from database
     const user = await prisma.user.findUnique({
-      where: { id: session.userId },
+      where: { id: decoded.id },
       select: { id: true, name: true, email: true, role: true },
     });
 
     if (!user) {
-      sessions.delete(sessionToken);
       return NextResponse.json({ message: "User not found" }, { status: 401 });
     }
 

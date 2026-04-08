@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 import * as bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
-
-// Simple in-memory session store (use Redis/database in production)
-const sessions = new Map<string, { userId: string; expiresAt: number }>();
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,14 +43,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create session token
-    const sessionToken = crypto.randomBytes(32).toString("hex");
-    sessions.set(sessionToken, {
-      userId: user.id,
-      expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-    });
+    // Create JWT token
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+      process.env.JWT_SECRET || "your-secret-key",
+      { expiresIn: "7d" }
+    );
 
-    // Create response with user data
+    // Create response
     const response = NextResponse.json({
       id: user.id,
       name: user.name,
@@ -61,12 +63,13 @@ export async function POST(request: NextRequest) {
       role: user.role,
     });
 
-    // Set session cookie
-    response.cookies.set("sessionToken", sessionToken, {
+    // Set JWT in HttpOnly cookie
+    response.cookies.set("authToken", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 24 * 60 * 60, // 24 hours
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: "/",
     });
 
     return response;
