@@ -191,9 +191,9 @@ export default function LogAktivitasPage() {
                     <td className="p-4 font-semibold text-gray-800">{log.asset?.namaAset}</td>
                     <td className="p-4 text-gray-600">{log.user?.name || "Sistem"}</td>
                     <td className="p-4 text-center pr-6">
-                      <button 
+                      <button
                         onClick={() => setSelectedLog(log)}
-                        className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold rounded-lg transition-all opacity-0 group-hover:opacity-100 text-xs"
+                        className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold rounded-lg transition-all text-xs"
                       >
                         Lihat
                       </button>

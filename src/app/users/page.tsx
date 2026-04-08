@@ -226,8 +226,8 @@ export default function UsersPage() {
                     </td>
                     <td className="p-4 text-gray-500 text-xs">{format(new Date(user.createdAt), "dd/MM/yyyy HH:mm")}</td>
                     <td className="p-4 text-center pr-6">
-                      <div className="flex gap-2 justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
+                      <div className="flex gap-2 justify-center transition-opacity">
+                        <button
                           onClick={() => handleEdit(user.id)}
                           className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
                           title="Edit"
