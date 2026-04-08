@@ -35,19 +35,19 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
       {/* Logo */}
-      <div className="mb-8">
+      <div className="-mb-8">
         <img
-          src="/logoSMBR.png"
+          src="/icon.png"
           alt="Logo SMBR"
-          className="h-48 w-48 object-contain"
+          className="h-64 w-64 object-contain"
         />
       </div>
 
       {/* Login Card */}
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md relative z-10 pt-4">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-            Login
+            Login Admin
           </h1>
           <p className="mt-2 text-sm text-gray-600">
             Masuk untuk mengakses dashboard
@@ -145,7 +145,7 @@ export default function LoginPage() {
                 Memproses...
               </>
             ) : (
-              "Login"
+              "Login Admin"
             )}
           </button>
         </form>

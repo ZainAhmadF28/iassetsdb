@@ -35,16 +35,16 @@ export default function Preloader() {
       className="fixed inset-0 bg-white flex flex-col items-center justify-center z-50"
     >
       {/* Logo */}
-      <div className="mb-8">
+      <div className="mb-2">
         <img
-          src="/logoSMBR.png"
+          src="/icon.png"
           alt="Logo"
-          className="w-40 h-40 object-contain"
+          className="w-56 h-56 object-contain"
         />
       </div>
 
       {/* Spinner */}
-      <div className="w-16 h-16 mb-6">
+      <div className="w-16 h-16 mb-4">
         <div className="preloader-spinner w-full h-full">
           <svg
             className="w-full h-full"

@@ -141,9 +141,10 @@ export default function UsersPage() {
             <Menu size={20} />
           </button>
           <div>
-            <h1 className="font-bold text-xl text-gray-800 tracking-tight flex items-center gap-2">
-              Admin Panel <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] uppercase rounded-full tracking-widest font-bold">Users</span>
-            </h1>
+            <div className="flex items-center gap-2">
+              <img src="/icon.png" alt="Admin Panel" className="h-8 w-auto" />
+              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] uppercase rounded-full tracking-widest font-bold">Users</span>
+            </div>
             <p className="text-xs text-gray-500 mt-0.5 font-medium">PT. SEMEN BATURAJA TBK</p>
           </div>
         </div>

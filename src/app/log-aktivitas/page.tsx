@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { format } from "date-fns";
 import {
-  Menu, Search, X, Loader2, ChevronDown
+  Menu, Search, X, Loader2
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 
@@ -38,7 +38,7 @@ export default function LogAktivitasPage() {
   const [hasMore, setHasMore] = useState(true);
   const [totalRecord, setTotalRecord] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [expandedLog, setExpandedLog] = useState<string | null>(null);
+  const [selectedLog, setSelectedLog] = useState<AssetLog | null>(null);
 
   const fetchLogs = async (currentPage: number, currentSearch: string, isNewSearch: boolean) => {
     try {
@@ -79,10 +79,6 @@ export default function LogAktivitasPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  const handleLoadMore = () => {
-    setPage(prev => prev + 1);
-  };
-
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     if (scrollHeight - scrollTop <= clientHeight + 200) {
@@ -117,9 +113,10 @@ export default function LogAktivitasPage() {
             <Menu size={20} />
           </button>
           <div>
-            <h1 className="font-bold text-xl text-gray-800 tracking-tight flex items-center gap-2">
-              Admin Panel <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] uppercase rounded-full tracking-widest font-bold">Log</span>
-            </h1>
+            <div className="flex items-center gap-2">
+              <img src="/icon.png" alt="Admin Panel" className="h-8 w-auto" />
+              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] uppercase rounded-full tracking-widest font-bold">Log</span>
+            </div>
             <p className="text-xs text-gray-500 mt-0.5 font-medium">PT. SEMEN BATURAJA TBK</p>
           </div>
         </div>
@@ -155,10 +152,10 @@ export default function LogAktivitasPage() {
               <tr className="text-gray-500 text-[11px] font-bold uppercase tracking-wider border-b border-gray-100">
                 <th className="p-4 pl-6">Waktu</th>
                 <th className="p-4">Action</th>
-                <th className="p-4">Aset</th>
+                <th className="p-4">Nomor Aset</th>
+                <th className="p-4">Nama Aset</th>
                 <th className="p-4">User</th>
-                <th className="p-4">Catatan</th>
-                <th className="p-4 text-center pr-6">Detail</th>
+                <th className="p-4 text-center pr-6">Aksi</th>
               </tr>
             </thead>
             <tbody className="text-gray-600 text-sm">
@@ -182,8 +179,7 @@ export default function LogAktivitasPage() {
                 logs.map((log) => (
                   <tr 
                     key={log.id} 
-                    className="hover:bg-purple-50/50 border-b border-gray-50/50 transition-all duration-200 group cursor-pointer"
-                    onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
+                    className="hover:bg-purple-50/50 border-b border-gray-50/50 transition-all duration-200 group"
                   >
                     <td className="p-4 pl-6 text-gray-500 text-xs whitespace-nowrap">{format(new Date(log.createdAt), "dd/MM/yyyy HH:mm")}</td>
                     <td className="p-4">
@@ -191,19 +187,15 @@ export default function LogAktivitasPage() {
                         {log.action}
                       </span>
                     </td>
+                    <td className="p-4 font-mono text-gray-600 text-xs">{log.asset?.nomorAset}</td>
                     <td className="p-4 font-semibold text-gray-800">{log.asset?.namaAset}</td>
                     <td className="p-4 text-gray-600">{log.user?.name || "Sistem"}</td>
-                    <td className="p-4 text-gray-600 truncate max-w-[200px]">{log.catatan || "-"}</td>
                     <td className="p-4 text-center pr-6">
                       <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setExpandedLog(expandedLog === log.id ? null : log.id);
-                        }}
-                        className="p-2 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors opacity-0 group-hover:opacity-100"
-                        title="Lihat Detail"
+                        onClick={() => setSelectedLog(log)}
+                        className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold rounded-lg transition-all opacity-0 group-hover:opacity-100 text-xs"
                       >
-                        <ChevronDown size={16} className={`transition-transform ${expandedLog === log.id ? "rotate-180" : ""}`} />
+                        Lihat
                       </button>
                     </td>
                   </tr>
@@ -212,53 +204,141 @@ export default function LogAktivitasPage() {
             </tbody>
           </table>
 
-          {/* EXPANDABLE DETAIL ROW */}
-          {expandedLog && logs.find(l => l.id === expandedLog) && (
-            <div className="border-t border-gray-100 bg-gray-50 p-6">
-              <div className="grid grid-cols-2 gap-6">
-                {logs.find(l => l.id === expandedLog)?.user && (
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">User</p>
-                    <p className="text-sm text-gray-800 font-medium">
-                      {logs.find(l => l.id === expandedLog)?.user?.name}
-                    </p>
-                    <p className="text-xs text-gray-500 font-mono">
-                      {logs.find(l => l.id === expandedLog)?.user?.email}
-                    </p>
-                  </div>
-                )}
-
-                {logs.find(l => l.id === expandedLog)?.oldValue && (
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Nilai Lama</p>
-                    <p className="text-sm text-gray-800 bg-white p-3 rounded-lg font-mono break-all">
-                      {logs.find(l => l.id === expandedLog)?.oldValue}
-                    </p>
-                  </div>
-                )}
-
-                {logs.find(l => l.id === expandedLog)?.newValue && (
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Nilai Baru</p>
-                    <p className="text-sm text-gray-800 bg-white p-3 rounded-lg font-mono break-all">
-                      {logs.find(l => l.id === expandedLog)?.newValue}
-                    </p>
-                  </div>
-                )}
-
-                {logs.find(l => l.id === expandedLog)?.catatan && (
-                  <div className="col-span-2">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Catatan Lengkap</p>
-                    <p className="text-sm text-gray-800 bg-white p-3 rounded-lg">
-                      {logs.find(l => l.id === expandedLog)?.catatan}
-                    </p>
-                  </div>
-                )}
-              </div>
+          {fetchingMore && (
+            <div className="flex justify-center p-6 border-t border-gray-50">
+              <Loader2 className="animate-spin text-purple-500" size={24} />
             </div>
           )}
         </div>
       </main>
+
+      {/* DETAIL MODAL */}
+      {selectedLog && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 transition-all duration-300">
+          <div 
+            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+            onClick={() => setSelectedLog(null)}
+          ></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-7 animate-in zoom-in-95 duration-300 border border-gray-100 flex flex-col max-h-[85vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex justify-between items-start mb-6 pb-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-1">Detail Aktivitas Log</h2>
+                <p className="text-xs text-gray-500 font-mono">{selectedLog.id}</p>
+              </div>
+              <button 
+                onClick={() => setSelectedLog(null)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="space-y-6">
+              {/* Waktu & Action */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Waktu</p>
+                  <p className="text-sm text-gray-800 font-medium">{format(new Date(selectedLog.createdAt), "dd MMMM yyyy HH:mm:ss")}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Tipe Action</p>
+                  <span className={`inline-block px-3 py-1.5 text-xs font-bold rounded-full ${getActionBadgeColor(selectedLog.action)}`}>
+                    {selectedLog.action}
+                  </span>
+                </div>
+              </div>
+
+              {/* Aset Info */}
+              <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4">
+                <p className="text-xs font-bold text-purple-600 uppercase tracking-widest mb-3">Informasi Aset</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Nomor Aset</p>
+                    <p className="text-sm font-mono font-bold text-gray-800">{selectedLog.asset?.nomorAset}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">ID Aset</p>
+                    <p className="text-xs font-mono text-gray-600">{selectedLog.asset?.id}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs text-gray-500 mb-1">Nama Aset</p>
+                    <p className="text-sm font-medium text-gray-800">{selectedLog.asset?.namaAset}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* User Info */}
+              {selectedLog.user ? (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+                  <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-3">Informasi User</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Nama</p>
+                      <p className="text-sm font-medium text-gray-800">{selectedLog.user.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Email</p>
+                      <p className="text-xs font-mono text-gray-600">{selectedLog.user.email}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4">
+                  <p className="text-xs font-bold text-gray-600 uppercase tracking-widest mb-2">User</p>
+                  <p className="text-sm text-gray-700">Sistem (Otomatis)</p>
+                </div>
+              )}
+
+              {/* Changes */}
+              {(selectedLog.oldValue || selectedLog.newValue) && (
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Perubahan Data</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    {selectedLog.oldValue && (
+                      <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                        <p className="text-xs font-bold text-red-600 mb-2">Nilai Lama</p>
+                        <p className="text-sm text-gray-800 font-mono break-all bg-white p-3 rounded-lg max-h-40 overflow-y-auto">
+                          {selectedLog.oldValue}
+                        </p>
+                      </div>
+                    )}
+                    {selectedLog.newValue && (
+                      <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                        <p className="text-xs font-bold text-green-600 mb-2">Nilai Baru</p>
+                        <p className="text-sm text-gray-800 font-mono break-all bg-white p-3 rounded-lg max-h-40 overflow-y-auto">
+                          {selectedLog.newValue}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Catatan */}
+              {selectedLog.catatan && (
+                <div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Catatan</p>
+                  <p className="text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-xl p-4">
+                    {selectedLog.catatan}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="mt-6 pt-6 border-t border-gray-200 flex gap-3">
+              <button 
+                onClick={() => setSelectedLog(null)}
+                className="flex-1 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-all duration-300 active:scale-95"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SIDEBAR COMPONENT */}
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} currentPage="log-aktivitas" />
