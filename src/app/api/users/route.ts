@@ -49,3 +49,38 @@ export async function GET(request: Request) {
     );
   }
 }
+
+import * as bcrypt from "bcryptjs";
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    
+    const hashedPassword = await bcrypt.hash(body.password, 10);
+    
+    const newUser = await prisma.user.create({
+      data: {
+        name: body.name,
+        email: body.email,
+        password: hashedPassword,
+        role: body.role || "user",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      }
+    });
+
+    return Response.json({ data: newUser }, { status: 201 });
+  } catch (error) {
+    console.error("ERROR CREATE USER:", error);
+    return Response.json(
+      { error: "Failed to create user" },
+      { status: 500 }
+    );
+  }
+}

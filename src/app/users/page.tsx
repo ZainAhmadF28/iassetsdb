@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { format } from "date-fns";
 import {
-  Menu, Search, X, Loader2, Edit, Trash2, AlertTriangle
+  Menu, Search, X, Loader2, Edit, Trash2, AlertTriangle, Plus
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 
@@ -28,6 +28,12 @@ export default function UsersPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{isOpen: boolean; id: string; nama: string}>({ isOpen: false, id: "", nama: "" });
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // ADD STATE
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [newUser, setNewUser] = useState<Partial<User>>({});
+  const [newPassword, setNewPassword] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
 
   // EDIT STATE
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -129,6 +135,33 @@ export default function UsersPage() {
     }
   };
 
+  const handleAddUser = async () => {
+    if (!newUser.name || !newUser.email || !newPassword) {
+      alert("Nama, Email, dan Password wajib diisi!");
+      return;
+    }
+
+    setIsAdding(true);
+    try {
+      const response = await axios.post("/api/users", {
+        name: newUser.name,
+        email: newUser.email,
+        password: newPassword,
+        role: newUser.role || "user"
+      });
+      setUsers((prev) => [response.data.data, ...prev]);
+      setTotalRecord((prev) => prev + 1);
+      setAddModalOpen(false);
+      setNewUser({});
+      setNewPassword("");
+    } catch (error) {
+      console.error("Gagal menambah user", error);
+      alert("Gagal menambah user. Silakan coba lagi.");
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
   return (
     <div className="h-screen overflow-hidden bg-slate-50 font-sans text-sm flex flex-col transition-colors duration-300">
       {/* HEADER */}
@@ -158,6 +191,15 @@ export default function UsersPage() {
 
       {/* SEARCH BAR */}
       <div className="px-4 py-4 shrink-0 z-10 w-full max-w-6xl mx-auto flex gap-3 items-center">
+        {/* Tambah User Button */}
+        <button
+          onClick={() => setAddModalOpen(true)}
+          className="px-5 py-3.5 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 font-semibold shadow-sm shadow-blue-600/30 hover:shadow-md transition-all duration-300 whitespace-nowrap flex items-center gap-2"
+        >
+          <Plus size={18} />
+          <span>Tambah User</span>
+        </button>
+
         <div className="relative group flex-1">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="text-gray-400 group-focus-within:text-blue-500 transition-colors duration-300" size={18} />
@@ -381,6 +423,96 @@ export default function UsersPage() {
                 className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl transition-all duration-300 active:scale-95 shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isSaving ? <Loader2 className="animate-spin" size={18} /> : "Simpan Perubahan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD USER MODAL */}
+      {addModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 transition-all duration-300">
+          <div 
+            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+            onClick={() => !isAdding && setAddModalOpen(false)}
+          ></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg p-7 animate-in slide-in-from-bottom-5 duration-300 border border-gray-100 flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <div className="p-2 bg-blue-100 text-blue-700 rounded-xl"><Plus size={18} /></div>
+                Tambah User
+              </h3>
+              <button 
+                onClick={() => !isAdding && setAddModalOpen(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                disabled={isAdding}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nama</label>
+                <input 
+                  type="text" 
+                  value={newUser.name || ""} 
+                  onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
+                  disabled={isAdding}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Email</label>
+                <input 
+                  type="email" 
+                  value={newUser.email || ""} 
+                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
+                  disabled={isAdding}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Password</label>
+                <input 
+                  type="password" 
+                  value={newPassword} 
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
+                  disabled={isAdding}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Role</label>
+                <select 
+                  value={newUser.role || "user"} 
+                  onChange={(e) => setNewUser({...newUser, role: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
+                  disabled={isAdding}
+                >
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 w-full mt-6 pt-4 border-t border-gray-100">
+              <button 
+                onClick={() => setAddModalOpen(false)}
+                disabled={isAdding}
+                className="flex-1 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-all duration-300 active:scale-95 disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={handleAddUser}
+                disabled={isAdding}
+                className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl transition-all duration-300 active:scale-95 shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isAdding ? <Loader2 className="animate-spin" size={18} /> : "Tambah User"}
               </button>
             </div>
           </div>

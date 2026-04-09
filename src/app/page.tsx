@@ -5,7 +5,7 @@ import axios from "axios";
 import { format } from "date-fns";
 import {
   Menu, Search, Home, Maximize,
-  Edit, Trash2, X, DownloadCloud, Loader2, AlertTriangle
+  Edit, Trash2, X, DownloadCloud, Loader2, AlertTriangle, Plus
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import UserNav from "@/components/UserNav";
@@ -47,6 +47,11 @@ export default function Dashboard() {
   const [deleteConfirm, setDeleteConfirm] = useState<{isOpen: boolean; id: string; nama: string}>({ isOpen: false, id: "", nama: "" });
   const [isDeleting, setIsDeleting] = useState(false);
   
+  // ADD STATE
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [newAsset, setNewAsset] = useState<Partial<Asset>>({});
+  const [isAdding, setIsAdding] = useState(false);
+
   // EDIT STATE
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editAsset, setEditAsset] = useState<Partial<Asset>>({});
@@ -210,6 +215,22 @@ export default function Dashboard() {
     }
   };
 
+  const handleAddAsset = async () => {
+    setIsAdding(true);
+    try {
+      const response = await axios.post("/api/assets", newAsset);
+      setAssets((prev) => [response.data.data, ...prev]);
+      setTotalRecord((prev) => prev + 1);
+      setAddModalOpen(false);
+      setNewAsset({});
+    } catch (error) {
+      console.error("Gagal menambah data", error);
+      alert("Gagal menambah aset. Silakan coba lagi.");
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
   return (
     <div className="h-screen overflow-hidden bg-slate-50 font-sans text-sm flex flex-col transition-colors duration-300">
       {/* HEADER */}
@@ -230,6 +251,14 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {/* Tambah Aset Button */}
+          <button
+            onClick={() => setAddModalOpen(true)}
+            className="px-5 py-3.5 rounded-2xl bg-green-600 text-white hover:bg-green-700 font-semibold shadow-sm shadow-green-600/30 hover:shadow-md transition-all duration-300 whitespace-nowrap flex items-center gap-2"
+          >
+            <Plus size={18} />
+            <span>Tambah Aset</span>
+          </button>
           <div className="hidden md:flex items-center gap-2 mr-4 text-xs font-semibold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             {totalRecord} Data Ditemukan
@@ -804,6 +833,185 @@ export default function Dashboard() {
                 />
               </div>
 
+
+      {/* FORM ADD MODAL */}
+      {addModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 transition-all duration-300">
+          <div 
+            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+            onClick={() => !isAdding && setAddModalOpen(false)}
+          ></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg p-7 animate-in slide-in-from-bottom-5 duration-300 border border-gray-100 flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <div className="p-2 bg-green-100 text-green-700 rounded-xl"><Plus size={18} /></div>
+                Tambah Data Aset
+              </h3>
+              <button 
+                onClick={() => !isAdding && setAddModalOpen(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                disabled={isAdding}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="flex flex-col gap-4 overflow-y-auto max-h-[60vh] custom-scrollbar px-1 pb-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nomor Aset</label>
+                <input
+                  type="text"
+                  value={newAsset.nomorAset || ""}
+                  onChange={(e) => setNewAsset({...newAsset, nomorAset: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                  disabled={isAdding}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nama Aset</label>
+                <input
+                  type="text"
+                  value={newAsset.namaAset || ""}
+                  onChange={(e) => setNewAsset({...newAsset, namaAset: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                  disabled={isAdding}
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kelas SMBR</label>
+                  <input
+                    type="text"
+                    value={newAsset.kelasAsetSmbr || ""}
+                    onChange={(e) => setNewAsset({...newAsset, kelasAsetSmbr: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isAdding}
+                  />
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kategori (SIG)</label>
+                  <select
+                    value={newAsset.kelasAsetSig || ""}
+                    onChange={(e) => setNewAsset({...newAsset, kelasAsetSig: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isAdding}
+                  >
+                    <option value="">-- Pilih Kategori --</option>
+                    <option value="BANGUNAN">Bangunan</option>
+                    <option value="INFRASTRUKTUR">Infrastruktur</option>
+                    <option value="KENDARAAN & ALAT BERAT">Kendaraan & Alat Berat</option>
+                    <option value="PERLENGKAPAN">Perlengkapan</option>
+                    <option value="TANAH">Tanah</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Qty</label>
+                  <input
+                    type="number"
+                    value={newAsset.qty || 1}
+                    onChange={(e) => setNewAsset({...newAsset, qty: parseInt(e.target.value, 10)})}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isAdding}
+                  />
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Satuan</label>
+                  <input
+                    type="text"
+                    value={newAsset.satuan || ""}
+                    onChange={(e) => setNewAsset({...newAsset, satuan: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isAdding}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Latitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={newAsset.latitude || ""}
+                    onChange={(e) => setNewAsset({...newAsset, latitude: parseFloat(e.target.value) || null})}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isAdding}
+                  />
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Longitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={newAsset.longitude || ""}
+                    onChange={(e) => setNewAsset({...newAsset, longitude: parseFloat(e.target.value) || null})}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isAdding}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kondisi</label>
+                <select
+                  value={newAsset.kondisi || "BAIK"}
+                  onChange={(e) => setNewAsset({...newAsset, kondisi: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                  disabled={isAdding}
+                >
+                  <option value="BAIK">Baik</option>
+                  <option value="RUSAK">Rusak</option>
+                  <option value="RUSAK_BERAT">Rusak Berat</option>
+                  <option value="HILANG">Hilang</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Site</label>
+                <input
+                  type="text"
+                  value={newAsset.site || ""}
+                  onChange={(e) => setNewAsset({...newAsset, site: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                  disabled={isAdding}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Keterangan / Catatan</label>
+                <textarea
+                  value={newAsset.keterangan || ""}
+                  onChange={(e) => setNewAsset({...newAsset, keterangan: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all resize-none h-24 shadow-sm"
+                  disabled={isAdding}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 w-full mt-6 pt-4 border-t border-gray-100">
+              <button 
+                onClick={() => setAddModalOpen(false)}
+                disabled={isAdding}
+                className="flex-1 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-all duration-300 active:scale-95 disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={handleAddAsset}
+                disabled={isAdding}
+                className="flex-1 py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl transition-all duration-300 active:scale-95 shadow-lg shadow-green-600/30 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isAdding ? <Loader2 className="animate-spin" size={18} /> : "Tambah"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Keterangan / Catatan</label>
                 <textarea

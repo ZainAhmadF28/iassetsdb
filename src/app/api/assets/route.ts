@@ -53,3 +53,35 @@ export async function GET(request: Request) {
     );
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    
+    // Add logic here to create asset
+    const newAsset = await prisma.asset.create({
+      data: {
+        nomorAset: body.nomorAset,
+        namaAset: body.namaAset,
+        kodeKelas: body.kodeKelas,
+        kelasAsetSmbr: body.kelasAsetSmbr,
+        kelasAsetSig: body.kelasAsetSig,
+        kondisi: body.kondisi || "BAIK",
+        qty: parseInt(body.qty) || 1,
+        satuan: body.satuan,
+        site: body.site,
+        latitude: parseFloat(body.latitude) || null,
+        longitude: parseFloat(body.longitude) || null,
+        keterangan: body.keterangan,
+      }
+    });
+
+    return Response.json({ data: newAsset }, { status: 201 });
+  } catch (error) {
+    console.error("ERROR CREATE ASSET:", error);
+    return Response.json(
+      { error: "Failed to create asset" },
+      { status: 500 }
+    );
+  }
+}
