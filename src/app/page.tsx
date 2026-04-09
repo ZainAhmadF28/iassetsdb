@@ -146,7 +146,7 @@ export default function Dashboard() {
     if (!url) return undefined;
     if (url.startsWith("http")) return url;
     // Ganti base URL ini sesuai dengan URL dan port backend API Anda (tempat file /uploads/... berada)
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://i-assets-smbr-apk-production.up.railway.app";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://10.10.101.113:3000";
     return `${backendUrl}${url}`;
   };
 
