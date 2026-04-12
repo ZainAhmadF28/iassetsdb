@@ -61,6 +61,7 @@ export async function POST(request: Request) {
     // Add logic here to create asset
     const newAsset = await prisma.asset.create({
       data: {
+        id: body.id, // wajib ditambahkan dari form
         nomorAset: body.nomorAset,
         namaAset: body.namaAset,
         kodeKelas: body.kodeKelas,

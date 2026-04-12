@@ -217,8 +217,8 @@ export default function Dashboard() {
 
   const handleAddAsset = async () => {
     console.log("handleAddAsset called", newAsset);
-    if (!newAsset.nomorAset || !newAsset.namaAset) {
-      alert("Nomor Aset dan Nama Aset wajib diisi!");
+    if (!newAsset.id || !newAsset.nomorAset || !newAsset.namaAset) {
+      alert("ID Aset, Nomor Aset, dan Nama Aset wajib diisi!");
       return;
     }
     setIsAdding(true);
@@ -230,7 +230,7 @@ export default function Dashboard() {
       setNewAsset({});
     } catch (error) {
       console.error("Gagal menambah data", error);
-      alert("Gagal menambah aset. Silakan coba lagi.");
+      alert("Gagal menambah aset. Mungkin ID sudah digunakan atau terjadi error lain.");
     } finally {
       setIsAdding(false);
     }
@@ -704,6 +704,18 @@ export default function Dashboard() {
             </div>
             
             <div className="flex flex-col gap-4 overflow-y-auto max-h-[60vh] custom-scrollbar px-1 pb-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">ID Aset (Wajib manual)</label>
+                <input
+                  type="text"
+                  value={newAsset.id || ""}
+                  onChange={(e) => setNewAsset({...newAsset, id: e.target.value})}
+                  placeholder="Masukkan ID Aset secara manual..."
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                  disabled={isAdding}
+                />
+              </div>
+
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nomor Aset</label>
                 <input
