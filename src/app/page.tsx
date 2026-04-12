@@ -145,8 +145,8 @@ export default function Dashboard() {
   const getFileUrl = (url: string | null) => {
     if (!url) return undefined;
     if (url.startsWith("http")) return url;
-    // Ganti base URL ini sesuai dengan URL dan port backend API Anda (tempat file /uploads/... berada)
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://10.10.101.113:3000";
+    // Ambil dari environment variable
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://10.10.101.113:3001";
     return `${backendUrl}${url}`;
   };
 
@@ -250,7 +250,7 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center gap-2">
               <img src="/icon.png" alt="Admin Panel" className="h-8 w-auto" />
-              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] uppercase rounded-full tracking-widest font-bold">Aset</span>
+              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] uppercase rounded-full tracking-widest font-bold">Asett</span>
             </div>
             <p className="text-xs text-gray-500 mt-0.5 font-medium">PT. SEMEN BATURAJA TBK</p>
           </div>

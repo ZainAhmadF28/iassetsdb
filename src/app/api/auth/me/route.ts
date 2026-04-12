@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: NextRequest) {
   try {
     const token = request.cookies.get("authToken")?.value;
+    console.log('[/api/auth/me] Token:', token ? 'exists' : 'missing');
 
     if (!token) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

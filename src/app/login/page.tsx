@@ -22,10 +22,12 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      console.log('handleLogin: Starting login...');
       await login(email, password);
-      router.push("/");
-      router.refresh();
+      console.log('handleLogin: Login successful, redirecting...');
+      window.location.href = '/';
     } catch (err: any) {
+      console.error('handleLogin error:', err);
       setError(err.message || "Login gagal. Silakan coba lagi.");
     } finally {
       setLoading(false);

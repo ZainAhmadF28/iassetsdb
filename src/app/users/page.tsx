@@ -38,6 +38,7 @@ export default function UsersPage() {
   // EDIT STATE
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editUser, setEditUser] = useState<Partial<User>>({});
+  const [editPassword, setEditPassword] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   const fetchUsers = async (currentPage: number, currentSearch: string, isNewSearch: boolean) => {
@@ -113,6 +114,7 @@ export default function UsersPage() {
     const userToEdit = users.find(u => u.id === id);
     if (!userToEdit) return;
     setEditUser({ ...userToEdit });
+    setEditPassword(""); // reset password input
     setEditModalOpen(true);
   };
 
@@ -120,13 +122,19 @@ export default function UsersPage() {
     if (!editUser.id) return;
     setIsSaving(true);
     try {
-      const response = await axios.put(`/api/users/${editUser.id}`, {
+      const payload: any = {
         name: editUser.name,
         email: editUser.email,
         role: editUser.role,
-      });
+      };
+      if (editPassword.trim() !== "") {
+        payload.password = editPassword;
+      }
+
+      const response = await axios.put(`/api/users/${editUser.id}`, payload);
       setUsers(prev => prev.map(u => u.id === editUser.id ? { ...u, ...response.data.data } : u));
       setEditModalOpen(false);
+      setEditPassword(""); // reset password
     } catch (error) {
       console.error("Gagal update user", error);
       alert("Gagal update user. Silakan coba lagi.");
@@ -390,6 +398,18 @@ export default function UsersPage() {
                   type="email" 
                   value={editUser.email || ""} 
                   onChange={(e) => setEditUser({...editUser, email: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
+                  disabled={isSaving}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Password (Kosongkan jika tidak ingin diubah)</label>
+                <input 
+                  type="password" 
+                  value={editPassword} 
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  placeholder="Ketik password baru..."
                   className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
                   disabled={isSaving}
                 />
