@@ -12,6 +12,7 @@ export async function PUT(
     const updatedAsset = await prisma.asset.update({
       where: { id },
       data: {
+        id: body.id !== undefined ? body.id : undefined,
         nomorAset: body.nomorAset,
         namaAset: body.namaAset,
         kelasAsetSmbr: body.kelasAsetSmbr,

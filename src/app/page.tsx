@@ -55,6 +55,7 @@ export default function Dashboard() {
   // EDIT STATE
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editAsset, setEditAsset] = useState<Partial<Asset>>({});
+  const [editOriginalId, setEditOriginalId] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
 
   // FILTER STATE
@@ -184,14 +185,16 @@ export default function Dashboard() {
     const assetToEdit = assets.find(a => a.id === id);
     if (!assetToEdit) return;
     setEditAsset({ ...assetToEdit });
+    setEditOriginalId(id);
     setEditModalOpen(true);
   };
 
   const handleSaveEdit = async () => {
-    if (!editAsset.id) return;
+    if (!editOriginalId) return;
     setIsSaving(true);
     try {
-      const response = await axios.put(`/api/assets/${editAsset.id}`, {
+      const response = await axios.put(`/api/assets/${editOriginalId}`, {
+        id: editAsset.id, // we might have updated the id
         nomorAset: editAsset.nomorAset,
         namaAset: editAsset.namaAset,
         kelasAsetSmbr: editAsset.kelasAsetSmbr,
@@ -205,7 +208,7 @@ export default function Dashboard() {
         keterangan: editAsset.keterangan,
       });
       // Update local state without re-fetching
-      setAssets(prev => prev.map(a => a.id === editAsset.id ? { ...a, ...response.data.data } : a));
+      setAssets(prev => prev.map(a => a.id === editOriginalId ? { ...a, ...response.data.data } : a));
       setEditModalOpen(false);
     } catch (error) {
       console.error("Gagal update data", error);
@@ -895,6 +898,17 @@ export default function Dashboard() {
             </div>
 
             <div className="flex flex-col gap-4 overflow-y-auto max-h-[60vh] custom-scrollbar px-1 pb-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">ID Aset</label>
+                <input
+                  type="text"
+                  value={editAsset.id || ""}
+                  onChange={(e) => setEditAsset({...editAsset, id: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                  disabled={isSaving}
+                />
+              </div>
+
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nomor Aset</label>
                 <input
