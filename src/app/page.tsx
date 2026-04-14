@@ -17,8 +17,10 @@ interface Asset {
   namaAset: string;
   kodeKelas: string | null;
   kelasAsetSmbr: string | null;
-  kelasAsetSig: string | null;
-  kategoriSig?: string | null; // Keep for backward compatibility if any
+  kategoriSig: string | null;
+  jenis: string | null;
+  merk: string | null;
+  type: string | null;
   kondisi: string;
   qty: number;
   satuan: string | null;
@@ -43,6 +45,7 @@ export default function Dashboard() {
   const [totalRecord, setTotalRecord] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{isOpen: boolean; id: string; nama: string}>({ isOpen: false, id: "", nama: "" });
   const [isDeleting, setIsDeleting] = useState(false);
@@ -142,6 +145,31 @@ export default function Dashboard() {
     }
   };
 
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setIsImporting(true);
+    try {
+      const response = await axios.post("/api/assets/import", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      alert(`Import Berhasil! \nSukses: ${response.data.successCount} \nGagal: ${response.data.failCount}`);
+      // Refresh data
+      setPage(1);
+      fetchAssets(1, search, true, filterKondisi, filterKategori);
+    } catch (error) {
+      console.error("Gagal import excel", error);
+      alert("Gagal mengimpor file Excel.");
+    } finally {
+      setIsImporting(false);
+      e.target.value = ""; // Reset input
+    }
+  };
+
   // Fungsi pembantu untuk membuat URL file nembak ke Backend API
   const getFileUrl = (url: string | null) => {
     if (!url) return undefined;
@@ -198,7 +226,10 @@ export default function Dashboard() {
         nomorAset: editAsset.nomorAset,
         namaAset: editAsset.namaAset,
         kelasAsetSmbr: editAsset.kelasAsetSmbr,
-        kelasAsetSig: editAsset.kelasAsetSig || editAsset.kategoriSig,
+        kategoriSig: editAsset.kategoriSig,
+        jenis: editAsset.jenis,
+        merk: editAsset.merk,
+        type: editAsset.type,
         kondisi: editAsset.kondisi,
         qty: editAsset.qty,
         satuan: editAsset.satuan,
@@ -259,6 +290,19 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {/* Import Aset Button via Hidden File Input */}
+          <label className="cursor-pointer px-5 py-3.5 rounded-2xl bg-white border border-gray-200/80 text-gray-700 hover:text-gray-900 font-semibold shadow-sm hover:shadow-md transition-all duration-300 whitespace-nowrap flex items-center gap-2">
+            {!isImporting ? <DownloadCloud size={18} className="rotate-180" /> : <Loader2 size={18} className="animate-spin" />}
+            <span>{isImporting ? "Mengimpor..." : "Import Excel"}</span>
+            <input 
+              type="file" 
+              accept=".xlsx, .xls" 
+              onChange={handleImportExcel} 
+              className="hidden" 
+              disabled={isImporting} 
+            />
+          </label>
+
           {/* Tambah Aset Button */}
           <button
             onClick={() => {
@@ -484,6 +528,9 @@ export default function Dashboard() {
                 <th className="p-4">Kode Kelas</th>
                 <th className="p-4">Kelas SMBR</th>
                 <th className="p-4">Kategori SIG</th>
+                <th className="p-4">Jenis</th>
+                <th className="p-4">Merk</th>
+                <th className="p-4">Type</th>
                 <th className="p-4">Kondisi</th>
                 <th className="p-4">Qty</th>
                 <th className="p-4">Satuan</th>
@@ -500,7 +547,7 @@ export default function Dashboard() {
             <tbody className="text-gray-600 text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={17} className="p-12 text-center">
+                  <td colSpan={20} className="p-12 text-center">
                     <div className="flex flex-col items-center gap-3 text-gray-400">
                       <Loader2 className="animate-spin text-green-500" size={32} />
                       <span className="font-medium animate-pulse">Memuat data aset...</span>
@@ -509,7 +556,7 @@ export default function Dashboard() {
                 </tr>
               ) : assets.length === 0 ? (
                 <tr>
-                  <td colSpan={17} className="p-12 text-center text-gray-400 flex-col items-center justify-center">
+                  <td colSpan={20} className="p-12 text-center text-gray-400 flex-col items-center justify-center">
                     <Search className="mx-auto text-gray-300 mb-3" size={48} />
                     <span className="font-medium">Tidak ada data aset ditemukan</span>
                   </td>
@@ -525,7 +572,10 @@ export default function Dashboard() {
                     <td className="p-4 text-gray-700 font-medium">{asset.namaAset}</td>
                     <td className="p-4 text-gray-500">{asset.kodeKelas || '-'}</td>
                     <td className="p-4 text-gray-500">{asset.kelasAsetSmbr || '-'}</td>
-                    <td className="p-4"><span className="text-[10px] font-bold text-green-700 bg-green-100/50 px-2 py-1 rounded-md uppercase">{asset.kelasAsetSig || asset.kategoriSig || '-'}</span></td>
+                    <td className="p-4"><span className="text-[10px] font-bold text-green-700 bg-green-100/50 px-2 py-1 rounded-md uppercase">{asset.kategoriSig || '-'}</span></td>
+                    <td className="p-4 text-gray-700">{asset.jenis || '-'}</td>
+                    <td className="p-4 text-gray-700">{asset.merk || '-'}</td>
+                    <td className="p-4 text-gray-700">{asset.type || '-'}</td>
                     <td className="p-4">{getKondisiBadge(asset.kondisi)}</td>
                     <td className="p-4 font-bold text-gray-700">{asset.qty}</td>
                     <td className="p-4 text-gray-500">{asset.satuan || '-'}</td>
@@ -755,8 +805,8 @@ export default function Dashboard() {
                 <div className="flex flex-col gap-1 flex-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kategori (SIG)</label>
                   <select
-                    value={newAsset.kelasAsetSig || ""}
-                    onChange={(e) => setNewAsset({...newAsset, kelasAsetSig: e.target.value})}
+                    value={newAsset.kategoriSig || ""}
+                    onChange={(e) => setNewAsset({...newAsset, kategoriSig: e.target.value})}
                     className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
                     disabled={isAdding}
                   >
@@ -767,6 +817,42 @@ export default function Dashboard() {
                     <option value="PERLENGKAPAN">Perlengkapan</option>
                     <option value="TANAH">Tanah</option>
                   </select>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Jenis</label>
+                  <input
+                    type="text"
+                    value={newAsset.jenis || ""}
+                    onChange={(e) => setNewAsset({...newAsset, jenis: e.target.value})}
+                    placeholder="Jenis aset"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isAdding}
+                  />
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Merk</label>
+                  <input
+                    type="text"
+                    value={newAsset.merk || ""}
+                    onChange={(e) => setNewAsset({...newAsset, merk: e.target.value})}
+                    placeholder="Merk aset"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isAdding}
+                  />
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Type / Tipe</label>
+                  <input
+                    type="text"
+                    value={newAsset.type || ""}
+                    onChange={(e) => setNewAsset({...newAsset, type: e.target.value})}
+                    placeholder="Type aset"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isAdding}
+                  />
                 </div>
               </div>
 
@@ -955,6 +1041,42 @@ export default function Dashboard() {
                     <option value="RUSAK_BERAT">Rusak Berat</option>
                     <option value="HILANG">Hilang</option>
                   </select>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Jenis</label>
+                  <input
+                    type="text"
+                    value={editAsset.jenis || ""}
+                    onChange={(e) => setEditAsset({...editAsset, jenis: e.target.value})}
+                    placeholder="Jenis aset"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isSaving}
+                  />
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Merk</label>
+                  <input
+                    type="text"
+                    value={editAsset.merk || ""}
+                    onChange={(e) => setEditAsset({...editAsset, merk: e.target.value})}
+                    placeholder="Merk aset"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isSaving}
+                  />
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Type / Tipe</label>
+                  <input
+                    type="text"
+                    value={editAsset.type || ""}
+                    onChange={(e) => setEditAsset({...editAsset, type: e.target.value})}
+                    placeholder="Type aset"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isSaving}
+                  />
                 </div>
               </div>
 

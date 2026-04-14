@@ -8,53 +8,60 @@ datasource db {
 }
 
 model User {
-  id         String   @id @default(uuid())
-  name       String
-  email      String   @unique
-  password   String
-  role       String   @default("admin")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-  logs       AssetLog[]
+  id               String     @id @default(uuid())
+  name             String
+  email            String     @unique
+  password         String
+  role             String     @default("admin")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+  resetToken       String?    @map("reset_token")
+  resetTokenExpiry DateTime?  @map("reset_token_expiry")
+  logs             AssetLog[]
 
   @@map("users")
 }
 
 model Asset {
-  id             String    @id @default(uuid())
+  id String @id @default(uuid())
 
   // Kolom 1-8 dari Excel (data SAP)
-  kodeKelas      String?   @map("kode_kelas")
-  kelasAsetSmbr  String?   @map("kelas_aset_smbr")
-  kelasAsetSig   String?   @map("kelas_aset_sig")
-  nomorAset      String    @unique @map("nomor_aset")
-  namaAset       String    @map("nama_aset")
-  site           String?
-  qty            Int       @default(1)
-  satuan         String?   @default("PC")
+  kodeKelas     String? @map("kode_kelas")
+  kelasAsetSmbr String? @map("kelas_aset_smbr")
+  kategoriSig   String? @map("kelas_aset_sig")
+  nomorAset     String  @map("nomor_aset")
+  namaAset      String  @map("nama_aset")
+  site          String?
+  qty           Int     @default(1)
+  satuan        String? @default("PC")
+
+  // Kolom Baru
+  jenis String?
+  merk  String?
+  type  String?
 
   // Kolom 9: KOORDINAT
-  latitude       Float?
-  longitude      Float?
+  latitude  Float?
+  longitude Float?
 
   // Kolom 10: TANGGAL UPDATE
-  tanggalUpdate  DateTime? @map("tanggal_update")
+  tanggalUpdate DateTime? @map("tanggal_update")
 
   // Kolom 11: DOKUMENTASI
-  fotoUrl        String?   @map("foto_url")
+  fotoUrl String? @map("foto_url")
 
   // Kolom 12: KONDISI
-  kondisi        Kondisi   @default(BELUM_DICEK)
+  kondisi Kondisi @default(BELUM_DICEK)
 
   // Kolom 13: KETERANGAN
-  keterangan     String?
+  keterangan String?
 
   // Kolom 14: QR CODE ASET
-  qrCodeUrl      String?   @map("qr_code_url")
+  qrCodeUrl String? @map("qr_code_url")
 
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  logs           AssetLog[]
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  logs      AssetLog[]
 
   @@map("assets")
 }
@@ -77,8 +84,8 @@ model AssetLog {
   catatan   String?
   createdAt DateTime @default(now()) @map("created_at")
 
-  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("asset_logs")
 }

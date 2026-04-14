@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
         namaAset:      asset.namaAset,
         kodeKelas:     asset.kodeKelas     || "-",
         kelasAsetSmbr: asset.kelasAsetSmbr || "-",
-        kategoriSig:   (asset as any).kelasAsetSig || (asset as any).kategoriSig || "-",
+        kategoriSig:   (asset as any).kategoriSig || (asset as any).kelasAsetSig || "-",
         kondisi:       asset.kondisi,
         qty:           asset.qty,
         satuan:        asset.satuan        || "-",

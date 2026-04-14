@@ -70,7 +70,7 @@ async function main() {
       create: {
         kodeKelas:     row[0]?.toString().trim() || null,
         kelasAsetSmbr: row[1]?.toString().trim() || null,
-        kelasAsetSig:  row[2]?.toString().trim() || null,
+        kategoriSig:  row[2]?.toString().trim() || null,
         nomorAset,
         namaAset,
         site:          row[5]?.toString().trim() || null,

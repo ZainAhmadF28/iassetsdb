@@ -16,7 +16,10 @@ export async function PUT(
         nomorAset: body.nomorAset,
         namaAset: body.namaAset,
         kelasAsetSmbr: body.kelasAsetSmbr,
-        kelasAsetSig: body.kelasAsetSig || body.kategoriSig, // Handle both
+        kategoriSig: body.kategoriSig || body.kelasAsetSig, // Handle both
+        jenis: body.jenis,
+        merk: body.merk,
+        type: body.type,
         qty: body.qty !== undefined ? Number(body.qty) : undefined,
         satuan: body.satuan,
         latitude: body.latitude !== undefined && body.latitude !== null ? parseFloat(body.latitude) : null,

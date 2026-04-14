@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Preloader from "@/components/Preloader";
 import { useEffect } from "react";
 
-const publicRoutes = ["/login"];
+const publicRoutes = ["/login", "/forgot-password", "/reset-password"];
 
 export default function RootLayoutClient({
   children,
@@ -23,8 +23,8 @@ export default function RootLayoutClient({
       if (!user && !isPublicRoute) {
         router.push("/login");
       }
-      // If logged in and trying to access login page, redirect to home
-      if (user && pathname === "/login") {
+      // If logged in and trying to access a public route (that shouldn't be accessed when logged in), redirect to home
+      if (user && isPublicRoute) {
         router.push("/");
       }
     }

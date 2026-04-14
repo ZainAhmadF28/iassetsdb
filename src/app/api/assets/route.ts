@@ -26,9 +26,9 @@ export async function GET(request: Request) {
       where.kondisi = kondisi;
     }
 
-    // Filter berdasarkan kategori (kelasAsetSig)
+    // Filter berdasarkan kategori (kategoriSig)
     if (kategori) {
-      where.kelasAsetSig = kategori;
+      where.kategoriSig = kategori;
     }
 
     const assets = await prisma.asset.findMany({
@@ -66,7 +66,10 @@ export async function POST(request: Request) {
         namaAset: body.namaAset,
         kodeKelas: body.kodeKelas,
         kelasAsetSmbr: body.kelasAsetSmbr,
-        kelasAsetSig: body.kelasAsetSig,
+        kategoriSig: body.kategoriSig || body.kelasAsetSig,
+        jenis: body.jenis,
+        merk: body.merk,
+        type: body.type,
         kondisi: body.kondisi || "BAIK",
         qty: parseInt(body.qty) || 1,
         satuan: body.satuan,
