@@ -1029,6 +1029,22 @@ export default function Dashboard() {
                   />
                 </div>
                 <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kategori (SIG)</label>
+                  <select
+                    value={editAsset.kategoriSig || ""}
+                    onChange={(e) => setEditAsset({...editAsset, kategoriSig: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 font-medium focus:text-gray-900 focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all shadow-sm"
+                    disabled={isSaving}
+                  >
+                    <option value="">-- Pilih Kategori --</option>
+                    <option value="BANGUNAN">Bangunan</option>
+                    <option value="INFRASTRUKTUR">Infrastruktur</option>
+                    <option value="KENDARAAN & ALAT BERAT">Kendaraan & Alat Berat</option>
+                    <option value="PERLENGKAPAN">Perlengkapan</option>
+                    <option value="TANAH">Tanah</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kondisi</label>
                   <select
                     value={editAsset.kondisi || "BAIK"}
