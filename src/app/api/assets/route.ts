@@ -74,9 +74,10 @@ export async function POST(request: Request) {
         qty: parseInt(body.qty) || 1,
         satuan: body.satuan,
         site: body.site,
-        latitude: parseFloat(body.latitude) || null,
-        longitude: parseFloat(body.longitude) || null,
+        latitude: body.latitude !== undefined && body.latitude !== "" ? parseFloat(body.latitude) : null,
+        longitude: body.longitude !== undefined && body.longitude !== "" ? parseFloat(body.longitude) : null,
         keterangan: body.keterangan,
+        customFields: body.customFields || {},
       }
     });
 

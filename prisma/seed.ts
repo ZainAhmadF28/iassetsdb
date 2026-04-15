@@ -64,21 +64,22 @@ async function main() {
       continue
     }
 
-    await prisma.asset.upsert({
-      where:  { nomorAset },
-      update: {},   // jika sudah ada, tidak diupdate
-      create: {
-        kodeKelas:     row[0]?.toString().trim() || null,
-        kelasAsetSmbr: row[1]?.toString().trim() || null,
-        kategoriSig:  row[2]?.toString().trim() || null,
-        nomorAset,
-        namaAset,
-        site:          row[5]?.toString().trim() || null,
-        qty:           Number(row[6]) || 1,
-        satuan:        row[7]?.toString().trim() || 'PC',
-        kondisi:       Kondisi.BELUM_DICEK
-      }
-    })
+    const existing = await prisma.asset.findFirst({ where: { nomorAset } });
+    if (!existing) {
+      await prisma.asset.create({
+        data: {
+          kodeKelas:     row[0]?.toString().trim() || null,
+          kelasAsetSmbr: row[1]?.toString().trim() || null,
+          kategoriSig:  row[2]?.toString().trim() || null,
+          nomorAset,
+          namaAset,
+          site:          row[5]?.toString().trim() || null,
+          qty:           Number(row[6]) || 1,
+          satuan:        row[7]?.toString().trim() || 'PC',
+          kondisi:       Kondisi.BELUM_DICEK
+        }
+      })
+    }
     success++
 
     if (success % 500 === 0) {

@@ -163,11 +163,11 @@ export default function Sidebar({ isOpen, onClose, currentPage }: SidebarProps) 
                 </div>
               </Link>
             </div>
-            
+
             {/* FOOTER - User Info & Logout */}
             <div className="p-6 border-t border-gray-100 space-y-4">
               {/* User Info */}
-              <div className="bg-white rounded-2xl border border-gray-100 p-4">
+              <div className="bg-white rounded-2xl border border-gray-100 p-4"> 
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm">
                     {user?.name.charAt(0).toUpperCase()}

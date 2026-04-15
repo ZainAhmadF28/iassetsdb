@@ -22,12 +22,13 @@ export async function PUT(
         type: body.type,
         qty: body.qty !== undefined ? Number(body.qty) : undefined,
         satuan: body.satuan,
-        latitude: body.latitude !== undefined && body.latitude !== null ? parseFloat(body.latitude) : null,
-        longitude: body.longitude !== undefined && body.longitude !== null ? parseFloat(body.longitude) : null,
+        latitude: body.latitude !== undefined && body.latitude !== null && body.latitude !== "" ? parseFloat(body.latitude) : null,
+        longitude: body.longitude !== undefined && body.longitude !== null && body.longitude !== "" ? parseFloat(body.longitude) : null,
         site: body.site,
         kondisi: body.kondisi,
         keterangan: body.keterangan,
         tanggalUpdate: new Date().toISOString(),
+        customFields: body.customFields,
       },
     });
 

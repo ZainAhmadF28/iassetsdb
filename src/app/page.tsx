@@ -5,10 +5,12 @@ import axios from "axios";
 import { format } from "date-fns";
 import {
   Menu, Search, Home, Maximize,
-  Edit, Trash2, X, DownloadCloud, Loader2, AlertTriangle, Plus
+  Edit, Trash2, X, DownloadCloud, Loader2, AlertTriangle, Plus, Settings2,
+  MoreVertical, MinusCircle, CheckCircle2
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import UserNav from "@/components/UserNav";
+import CustomColumnFormModal from "@/components/CustomColumnFormModal";
 
 
 interface Asset {
@@ -33,6 +35,17 @@ interface Asset {
   qrCodeUrl: string | null;
   createdAt: string;
   updatedAt: string;
+  customFields?: any;
+}
+
+interface CustomColumn {
+  id: string;
+  name: string;
+  key: string;
+  type: string;
+  options: string[] | null;
+  required: boolean;
+  order: number;
 }
 
 export default function Dashboard() {
@@ -49,9 +62,18 @@ export default function Dashboard() {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{isOpen: boolean; id: string; nama: string}>({ isOpen: false, id: "", nama: "" });
   const [isDeleting, setIsDeleting] = useState(false);
+  // MODE KOLOM KUSTOM
+  const [columnMenuOpen, setColumnMenuOpen] = useState(false);
+  const [columnMode, setColumnMode] = useState<'normal' | 'edit' | 'delete'>('normal');
+  const [editingColumn, setEditingColumn] = useState<CustomColumn | null>(null);
+  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
   
+  // CUSTOM COLUMNS STATE
+  const [customColumns, setCustomColumns] = useState<CustomColumn[]>([]);
+
   // ADD STATE
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [isCustomColumnsOpen, setIsCustomColumnsOpen] = useState(false);
   const [newAsset, setNewAsset] = useState<Partial<Asset>>({});
   const [isAdding, setIsAdding] = useState(false);
 
@@ -91,6 +113,32 @@ export default function Dashboard() {
       setFetchingMore(false);
     }
   };
+
+  const handleDeleteColumn = async (id: string, name: string) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus kolom "${name}"?`)) return;
+
+    try {
+      const res = await fetch(`/api/custom-columns/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Gagal menghapus");
+      
+      fetchCustomColumns();
+    } catch (error) {
+      alert("Gagal menghapus kolom");
+    }
+  };
+
+  const fetchCustomColumns = async () => {
+    try {
+      const res = await axios.get("/api/custom-columns");
+      setCustomColumns(res.data);
+    } catch (error) {
+      console.error("Failed to load custom columns", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomColumns();
+  }, []);
 
   // Efek berjalan setiap pencarian atau filter berubah (debounce 500ms agar server tidak berat)
   useEffect(() => {
@@ -212,7 +260,16 @@ export default function Dashboard() {
   const handleEdit = (id: string) => {
     const assetToEdit = assets.find(a => a.id === id);
     if (!assetToEdit) return;
-    setEditAsset({ ...assetToEdit });
+    
+    const editData: any = { ...assetToEdit };
+    customColumns.forEach(col => {
+      const value = assetToEdit.customFields?.[col.key];
+      if (value !== undefined && value !== null) {
+        editData[`custom_${col.key}`] = value;
+      }
+    });
+    
+    setEditAsset(editData);
     setEditOriginalId(id);
     setEditModalOpen(true);
   };
@@ -221,8 +278,16 @@ export default function Dashboard() {
     if (!editOriginalId) return;
     setIsSaving(true);
     try {
+      const customFieldsData: any = {};
+      customColumns.forEach(col => {
+        const value = (editAsset as any)[`custom_${col.key}`];
+        if (value !== undefined && value !== null && value !== "") {
+          customFieldsData[col.key] = value;
+        }
+      });
+
       const response = await axios.put(`/api/assets/${editOriginalId}`, {
-        id: editAsset.id, // we might have updated the id
+        id: editAsset.id,
         nomorAset: editAsset.nomorAset,
         namaAset: editAsset.namaAset,
         kelasAsetSmbr: editAsset.kelasAsetSmbr,
@@ -237,8 +302,8 @@ export default function Dashboard() {
         longitude: editAsset.longitude,
         site: editAsset.site,
         keterangan: editAsset.keterangan,
+        customFields: customFieldsData,
       });
-      // Update local state without re-fetching
       setAssets(prev => prev.map(a => a.id === editOriginalId ? { ...a, ...response.data.data } : a));
       setEditModalOpen(false);
     } catch (error) {
@@ -257,7 +322,18 @@ export default function Dashboard() {
     }
     setIsAdding(true);
     try {
-      const response = await axios.post("/api/assets", newAsset);
+      const customFieldsData: any = {};
+      customColumns.forEach(col => {
+        const value = (newAsset as any)[`custom_${col.key}`];
+        if (value !== undefined && value !== null && value !== "") {
+          customFieldsData[col.key] = value;
+        }
+      });
+
+      const response = await axios.post("/api/assets", {
+        ...newAsset,
+        customFields: customFieldsData
+      });
       setAssets((prev) => [response.data.data, ...prev]);
       setTotalRecord((prev) => prev + 1);
       setAddModalOpen(false);
@@ -290,6 +366,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+
           {/* Import Aset Button via Hidden File Input */}
           <label className="cursor-pointer px-5 py-3.5 rounded-2xl bg-white border border-gray-200/80 text-gray-700 hover:text-gray-900 font-semibold shadow-sm hover:shadow-md transition-all duration-300 whitespace-nowrap flex items-center gap-2">
             {!isImporting ? <DownloadCloud size={18} className="rotate-180" /> : <Loader2 size={18} className="animate-spin" />}
@@ -519,31 +596,108 @@ export default function Dashboard() {
         onScroll={handleScroll}
       >
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 min-w-max w-full overflow-hidden transition-all duration-300">
-          <table className="w-full whitespace-nowrap text-left border-collapse min-w-full">
-            <thead className="sticky top-0 z-10 backdrop-blur-md bg-white/90">
-              <tr className="text-gray-500 text-[11px] font-bold uppercase tracking-wider border-b border-gray-100">
-                <th className="p-4 pl-6">ID</th>
-                <th className="p-4">Nomor Aset</th>
-                <th className="p-4">Nama Aset</th>
-                <th className="p-4">Kode Kelas</th>
-                <th className="p-4">Kelas SMBR</th>
-                <th className="p-4">Kategori SIG</th>
-                <th className="p-4">Jenis</th>
-                <th className="p-4">Merk</th>
-                <th className="p-4">Type</th>
-                <th className="p-4">Kondisi</th>
-                <th className="p-4">Qty</th>
-                <th className="p-4">Satuan</th>
-                <th className="p-4">Site</th>
-                <th className="p-4">Latitude</th>
-                <th className="p-4">Longitude</th>
-                <th className="p-4">Tgl Update</th>
-                <th className="p-4">Keterangan</th>
-                <th className="p-4 text-center">Foto</th>
-                <th className="p-4 text-center">QR Code</th>
-                <th className="p-4 text-center pr-6">Aksi</th>
-              </tr>
-            </thead>
+          {columnMode !== 'normal' && (
+              <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3 flex items-center justify-between sticky top-0 z-20">
+                <div className="flex items-center gap-2 text-indigo-700 font-semibold text-sm">
+                  {columnMode === 'delete' ? (
+                    <><Trash2 size={16} className="text-red-500" /> Mode Hapus Kolom Aktif (Klik icon minus merah untuk menghapus)</>
+                  ) : (
+                    <><Edit size={16} className="text-blue-500" /> Mode Edit Kolom Aktif (Klik nama/icon edit di kolom untuk mengubah)</>
+                  )}
+                </div>
+                <button 
+                  onClick={() => setColumnMode('normal')}
+                  className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-sm flex items-center gap-2 transition-all"
+                >
+                  <CheckCircle2 size={14} /> Selesai
+                </button>
+              </div>
+            )}
+            <table className="w-full whitespace-nowrap text-left border-collapse min-w-full">
+              <thead className="sticky top-0 z-10 backdrop-blur-md bg-white/90">
+                <tr className="text-gray-500 text-[11px] font-bold uppercase tracking-wider border-b border-gray-100 relative">
+                  <th className="p-4 pl-6">ID</th>
+                  <th className="p-4">Nomor Aset</th>
+                  <th className="p-4">Nama Aset</th>
+                  <th className="p-4">Kode Kelas</th>
+                  <th className="p-4">Kelas SMBR</th>
+                  <th className="p-4">Kategori SIG</th>
+                  <th className="p-4">Jenis</th>
+                  <th className="p-4">Merk</th>
+                  <th className="p-4">Type</th>
+                  <th className="p-4">Kondisi</th>
+                  <th className="p-4">Qty</th>
+                  <th className="p-4">Satuan</th>
+                  <th className="p-4">Site</th>
+                  <th className="p-4">Latitude</th>
+                  <th className="p-4">Longitude</th>
+                  <th className="p-4">Tgl Update</th>
+                  <th className="p-4">Keterangan</th>
+                  <th className="p-4 text-center">Foto</th>
+                  <th className="p-4 text-center">QR Code</th>
+                  
+                  {/* GENERATE DYNAMIC HEADERS */}
+                  {customColumns.sort((a,b) => a.order - b.order).map(col => (
+                    <th key={col.id} className="p-4 bg-indigo-50/30 font-bold text-gray-800">
+                      <div className="flex items-center gap-2 whitespace-nowrap">
+                        {columnMode === 'delete' && (
+                          <button onClick={() => handleDeleteColumn(col.id, col.name)} className="text-red-500 hover:text-red-700 p-0.5 bg-red-100 rounded cursor-pointer transition-colors" title="Hapus Kolom">
+                            <MinusCircle size={14} />
+                          </button>
+                        )}
+                        {columnMode === 'edit' && (
+                          <button onClick={() => { setEditingColumn(col); setIsColumnModalOpen(true); }} className="text-blue-500 hover:text-blue-700 p-0.5 bg-blue-100 rounded cursor-pointer transition-colors" title="Edit Kolom">
+                            <Edit size={14} />
+                          </button>
+                        )}
+                        <span className={columnMode === 'edit' ? 'text-blue-700 border-b border-dashed border-blue-400 cursor-pointer' : ''} onClick={() => { if(columnMode === 'edit') { setEditingColumn(col); setIsColumnModalOpen(true); } }}>{col.name}</span>
+                      </div>
+                    </th>
+                  ))}
+
+                  <th className="p-4 text-center pr-6 relative">
+                    <div className="flex items-center justify-end gap-2 pr-2 text-gray-800">
+                       <span className="font-bold">Aksi</span>
+                       {/* 3 DOTS MENU FOR COLUMN */}
+                       <div className="relative">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setColumnMenuOpen(!columnMenuOpen); }}
+                            className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                          
+                          {columnMenuOpen && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 font-medium text-sm normal-case tracking-normal">
+                              <button 
+                                onClick={() => { setColumnMenuOpen(false); setEditingColumn(null); setIsColumnModalOpen(true); }}
+                                className="w-full text-left px-4 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2"
+                              >
+                                <Plus size={14}/> Tambah Kolom
+                              </button>
+                              {customColumns.length > 0 && (
+                                <>
+                                  <button 
+                                    onClick={() => { setColumnMenuOpen(false); setColumnMode('edit'); }}
+                                    className="w-full text-left px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
+                                  >
+                                    <Edit size={14}/> Edit Kolom
+                                  </button>
+                                  <button 
+                                    onClick={() => { setColumnMenuOpen(false); setColumnMode('delete'); }}
+                                    className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                  >
+                                    <Trash2 size={14}/> Hapus Kolom
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                       </div>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
             <tbody className="text-gray-600 text-sm">
               {loading ? (
                 <tr>
@@ -622,6 +776,17 @@ export default function Dashboard() {
                         />
                       </button>
                     </td>
+                    
+                    {/* GENERATE DYNAMIC CELLS UNTUK KOLOM KUSTOM */}
+                    {customColumns.sort((a,b) => a.order - b.order).map(col => {
+                       const value = asset.customFields?.[col.key];
+                       return (
+                          <td key={col.id} className="p-4 text-gray-700">
+                             {value !== undefined && value !== null ? String(value) : '-'}
+                          </td>
+                       );
+                    })}
+                    
                     <td className="p-4 pr-6">
                       <div className="flex items-center justify-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
                         <button 
@@ -939,6 +1104,65 @@ export default function Dashboard() {
                   disabled={isAdding}
                 />
               </div>
+
+              {/* CUSTOM FIELDS DINAMIS */}
+              {customColumns.sort((a,b) => a.order - b.order).map(col => (
+                <div key={col.id} className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-indigo-600 uppercase tracking-wider">
+                    {col.name} {col.required && <span className="text-red-500">*</span>}
+                  </label>
+                  {col.type === 'text' && (
+                    <input
+                      type="text"
+                      value={(newAsset as any)[`custom_${col.key}`] || ""}
+                      onChange={(e) => setNewAsset({...newAsset, [`custom_${col.key}`]: e.target.value})}
+                      className="w-full px-4 py-3 rounded-xl bg-indigo-50 border border-indigo-200 text-gray-800 font-medium focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm"
+                      disabled={isAdding}
+                    />
+                  )}
+                  {col.type === 'number' && (
+                    <input
+                      type="number"
+                      value={(newAsset as any)[`custom_${col.key}`] || ""}
+                      onChange={(e) => setNewAsset({...newAsset, [`custom_${col.key}`]: e.target.value})}
+                      className="w-full px-4 py-3 rounded-xl bg-indigo-50 border border-indigo-200 text-gray-800 font-medium focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm"
+                      disabled={isAdding}
+                    />
+                  )}
+                  {col.type === 'date' && (
+                    <input
+                      type="date"
+                      value={(newAsset as any)[`custom_${col.key}`] || ""}
+                      onChange={(e) => setNewAsset({...newAsset, [`custom_${col.key}`]: e.target.value})}
+                      className="w-full px-4 py-3 rounded-xl bg-indigo-50 border border-indigo-200 text-gray-800 font-medium focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm"
+                      disabled={isAdding}
+                    />
+                  )}
+                  {col.type === 'boolean' && (
+                    <div className="flex items-center gap-2 p-3 bg-indigo-50 border border-indigo-200 rounded-xl">
+                      <input
+                        type="checkbox"
+                        checked={(newAsset as any)[`custom_${col.key}`] || false}
+                        onChange={(e) => setNewAsset({...newAsset, [`custom_${col.key}`]: e.target.checked})}
+                        className="w-4 h-4 text-indigo-600 rounded"
+                        disabled={isAdding}
+                      />
+                      <span className="text-sm text-gray-700">Ya</span>
+                    </div>
+                  )}
+                  {col.type === 'select' && col.options && (
+                    <select
+                      value={(newAsset as any)[`custom_${col.key}`] || ""}
+                      onChange={(e) => setNewAsset({...newAsset, [`custom_${col.key}`]: e.target.value})}
+                      className="w-full px-4 py-3 rounded-xl bg-indigo-50 border border-indigo-200 text-gray-800 font-medium focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm"
+                      disabled={isAdding}
+                    >
+                      <option value="">-- Pilih --</option>
+                      {col.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  )}
+                </div>
+              ))}
             </div>
 
             <div className="flex gap-3 w-full mt-6 pt-4 border-t border-gray-100">
@@ -1139,6 +1363,65 @@ export default function Dashboard() {
                   disabled={isSaving}
                 />
               </div>
+
+              {/* CUSTOM FIELDS DINAMIS */}
+              {customColumns.sort((a,b) => a.order - b.order).map(col => (
+                <div key={col.id} className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-indigo-600 uppercase tracking-wider">
+                    {col.name} {col.required && <span className="text-red-500">*</span>}
+                  </label>
+                  {col.type === 'text' && (
+                    <input
+                      type="text"
+                      value={(editAsset as any)[`custom_${col.key}`] || ""}
+                      onChange={(e) => setEditAsset({...editAsset, [`custom_${col.key}`]: e.target.value})}
+                      className="w-full px-4 py-3 rounded-xl bg-indigo-50 border border-indigo-200 text-gray-800 font-medium focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm"
+                      disabled={isSaving}
+                    />
+                  )}
+                  {col.type === 'number' && (
+                    <input
+                      type="number"
+                      value={(editAsset as any)[`custom_${col.key}`] || ""}
+                      onChange={(e) => setEditAsset({...editAsset, [`custom_${col.key}`]: e.target.value})}
+                      className="w-full px-4 py-3 rounded-xl bg-indigo-50 border border-indigo-200 text-gray-800 font-medium focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm"
+                      disabled={isSaving}
+                    />
+                  )}
+                  {col.type === 'date' && (
+                    <input
+                      type="date"
+                      value={(editAsset as any)[`custom_${col.key}`] || ""}
+                      onChange={(e) => setEditAsset({...editAsset, [`custom_${col.key}`]: e.target.value})}
+                      className="w-full px-4 py-3 rounded-xl bg-indigo-50 border border-indigo-200 text-gray-800 font-medium focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm"
+                      disabled={isSaving}
+                    />
+                  )}
+                  {col.type === 'boolean' && (
+                    <div className="flex items-center gap-2 p-3 bg-indigo-50 border border-indigo-200 rounded-xl">
+                      <input
+                        type="checkbox"
+                        checked={(editAsset as any)[`custom_${col.key}`] || false}
+                        onChange={(e) => setEditAsset({...editAsset, [`custom_${col.key}`]: e.target.checked})}
+                        className="w-4 h-4 text-indigo-600 rounded"
+                        disabled={isSaving}
+                      />
+                      <span className="text-sm text-gray-700">Ya</span>
+                    </div>
+                  )}
+                  {col.type === 'select' && col.options && (
+                    <select
+                      value={(editAsset as any)[`custom_${col.key}`] || ""}
+                      onChange={(e) => setEditAsset({...editAsset, [`custom_${col.key}`]: e.target.value})}
+                      className="w-full px-4 py-3 rounded-xl bg-indigo-50 border border-indigo-200 text-gray-800 font-medium focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm"
+                      disabled={isSaving}
+                    >
+                      <option value="">-- Pilih --</option>
+                      {col.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  )}
+                </div>
+              ))}
             </div>
 
             <div className="flex gap-3 w-full mt-6 pt-4 border-t border-gray-100">
@@ -1160,6 +1443,15 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Kolom Kustom Form Modal */}
+        <CustomColumnFormModal
+          isOpen={isColumnModalOpen}
+          onClose={() => { setIsColumnModalOpen(false); setEditingColumn(null); }}
+          editingColumn={editingColumn}
+          onSuccess={fetchCustomColumns}
+          orderDefault={customColumns.length > 0 ? customColumns[customColumns.length - 1].order + 1 : 1}
+        />
     </div>
   );
   

@@ -21,6 +21,11 @@ export async function GET(req: NextRequest) {
       orderBy: { updatedAt: "desc" },
     });
 
+    // Fetch custom columns
+    const customColumns = await prisma.assetCustomColumn.findMany({
+      orderBy: { order: "asc" },
+    });
+
     const workbook = new ExcelJS.Workbook();
     workbook.creator = "IAssets SMBR";
     workbook.created = new Date();
@@ -28,7 +33,7 @@ export async function GET(req: NextRequest) {
     const sheet = workbook.addWorksheet("DATA ASET");
 
     // ── Column Definitions ──
-    sheet.columns = [
+    const baseColumns = [
       { header: "No",           key: "no",            width: 5  },
       { header: "ID Aset",      key: "id",            width: 20 },
       { header: "Nomor Aset",   key: "nomorAset",     width: 22 },
@@ -46,6 +51,18 @@ export async function GET(req: NextRequest) {
       { header: "Keterangan",   key: "keterangan",    width: 32 },
       { header: "Foto",         key: "foto",          width: 14 },
       { header: "QR Code",      key: "qr",            width: 14 },
+    ];
+
+    // Add custom columns
+    const customColumnsHeaders = customColumns.map(col => ({
+      header: col.name,
+      key: `custom_${col.key}`,
+      width: 20
+    }));
+
+    sheet.columns = [
+      ...baseColumns,
+      ...customColumnsHeaders,
       { header: "Created At",   key: "createdAt",     width: 22 },
       { header: "Updated At",   key: "updatedAt",     width: 22 },
     ];
@@ -99,6 +116,12 @@ export async function GET(req: NextRequest) {
         updatedAt:     new Date(asset.updatedAt).toLocaleString("id-ID"),
       };
 
+      // Add custom fields values
+      customColumns.forEach(col => {
+        const value = (asset as any).customFields?.[col.key];
+        (row.values as any)[`custom_${col.key}`] = value !== undefined && value !== null ? String(value) : "-";
+      });
+
       row.alignment = { vertical: "middle", wrapText: false };
 
       // Zebra stripe
@@ -144,13 +167,13 @@ export async function GET(req: NextRequest) {
               buffer: buffer as any,
               extension: extension as any,
             });
+            const fotoColIndex = 15; // Kolom Foto (0-based)
             sheet.addImage(imageId, {
-              tl: { col: 15 + 0.1, row: rowIndex - 1 + 0.1 } as any, // Kolom Foto index ke-15 (0-based)
+              tl: { col: fotoColIndex + 0.1, row: rowIndex - 1 + 0.1 } as any,
               ext: { width: 65, height: 65 },
               editAs: "oneCell",
             });
           } else {
-             // Fallback jika gagal didownload, outputkan nama file atau link saja
              const fotoCell = row.getCell("foto");
              fotoCell.value = { text: "Link Foto", hyperlink: fotoUrl.startsWith("http") ? fotoUrl : `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://10.143.172.190:3000"}${fotoUrl}` };
              fotoCell.font = { color: { argb: "FF1565C0" }, underline: true };
@@ -160,9 +183,9 @@ export async function GET(req: NextRequest) {
         console.error("Foto error:", e);
       }
 
-      // ── QR Code: Generate dari nomorAset ──
+      // ── QR Code: Generate dari id ──
       try {
-        if (asset.id) { // ganti menggunakan `id` agar unik seperti qr di frontend page.tsx
+        if (asset.id) {
           const qrBase64 = await QRCode.toDataURL(asset.id, {
             margin: 1,
             width: 100,
@@ -172,8 +195,9 @@ export async function GET(req: NextRequest) {
             base64: base64Data,
             extension: "png",
           });
+          const qrColIndex = 16; // Kolom QR Code (0-based)
           sheet.addImage(imageId, {
-            tl: { col: 16 + 0.1, row: rowIndex - 1 + 0.1 } as any, // Kolom QR Code index ke-16 (0-based)
+            tl: { col: qrColIndex + 0.1, row: rowIndex - 1 + 0.1 } as any,
             ext: { width: 65, height: 65 },
             editAs: "oneCell",
           });
