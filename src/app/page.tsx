@@ -655,46 +655,8 @@ export default function Dashboard() {
                     </th>
                   ))}
 
-                  <th className="p-4 text-center pr-6 relative">
-                    <div className="flex items-center justify-end gap-2 pr-2 text-gray-800">
-                       <span className="font-bold">Aksi</span>
-                       {/* 3 DOTS MENU FOR COLUMN */}
-                       <div className="relative">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); setColumnMenuOpen(!columnMenuOpen); }}
-                            className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                          >
-                            <MoreVertical size={16} />
-                          </button>
-                          
-                          {columnMenuOpen && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 font-medium text-sm normal-case tracking-normal">
-                              <button 
-                                onClick={() => { setColumnMenuOpen(false); setEditingColumn(null); setIsColumnModalOpen(true); }}
-                                className="w-full text-left px-4 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2"
-                              >
-                                <Plus size={14}/> Tambah Kolom
-                              </button>
-                              {customColumns.length > 0 && (
-                                <>
-                                  <button 
-                                    onClick={() => { setColumnMenuOpen(false); setColumnMode('edit'); }}
-                                    className="w-full text-left px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
-                                  >
-                                    <Edit size={14}/> Edit Kolom
-                                  </button>
-                                  <button 
-                                    onClick={() => { setColumnMenuOpen(false); setColumnMode('delete'); }}
-                                    className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                  >
-                                    <Trash2 size={14}/> Hapus Kolom
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          )}
-                       </div>
-                    </div>
+                  <th className="p-4 text-center pr-6">
+                    <span className="font-bold">Aksi</span>
                   </th>
                 </tr>
               </thead>

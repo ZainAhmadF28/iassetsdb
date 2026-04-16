@@ -62,7 +62,7 @@ model Asset {
   // JSONB untuk custom columns yang dinamis
   customFields Json? @default("{}") @map("custom_fields")
 
-  createdAt DateTime   @default(now()) @map("created_at")
+  createdAt DateTime   @default(dbgenerated("timezone('Asia/Jakarta', now())")) @map("created_at")
   updatedAt DateTime   @updatedAt @map("updated_at")
   logs      AssetLog[]
 
@@ -92,14 +92,15 @@ model AssetLog {
 
   @@map("asset_logs")
 }
+
 model AssetCustomColumn {
-  id       String   @id @default(uuid())
-  name     String   // "Nama Panjang Kolom" untuk UI
-  key      String   @unique // "nama_kolom" (tanpa spasi/huruf besar) untuk key JSON
-  type     String   @default("text") // "text", "number", "date", "boolean", "select"
-  options  Json?    // Pilihan dropdown (jika type = "select"), e.g. ["A", "B", "C"]
-  required Boolean  @default(false)
-  order    Int      @default(0) // Urutan tampilan di UI
+  id       String  @id @default(uuid())
+  name     String // "Nama Panjang Kolom" untuk UI
+  key      String  @unique // "nama_kolom" (tanpa spasi/huruf besar) untuk key JSON
+  type     String  @default("text") // "text", "number", "date", "boolean", "select"
+  options  Json? // Pilihan dropdown (jika type = "select"), e.g. ["A", "B", "C"]
+  required Boolean @default(false)
+  order    Int     @default(0) // Urutan tampilan di UI
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

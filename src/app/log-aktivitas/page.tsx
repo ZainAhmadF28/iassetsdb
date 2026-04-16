@@ -181,7 +181,11 @@ export default function LogAktivitasPage() {
                     key={log.id} 
                     className="hover:bg-purple-50/50 border-b border-gray-50/50 transition-all duration-200 group"
                   >
-                    <td className="p-4 pl-6 text-gray-500 text-xs whitespace-nowrap">{format(new Date(log.createdAt), "dd/MM/yyyy HH:mm")}</td>
+                    <td className="p-4 pl-6">
+                      {new Date(log.createdAt).toLocaleString("id-ID", {
+                        timeZone: "Asia/Jakarta",
+                      })}
+                    </td>
                     <td className="p-4">
                       <span className={`px-3 py-1 text-[11px] font-bold rounded-full whitespace-nowrap ${getActionBadgeColor(log.action)}`}>
                         {log.action}
